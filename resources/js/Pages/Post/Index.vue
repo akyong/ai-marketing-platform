@@ -258,6 +258,10 @@ const deletePost = (postId) => {
                                 {{ post.content }}
                             </div>
 
+                            <div v-if="post.error_message" class="mt-2 rounded bg-red-50 p-3 text-xs text-red-700 border border-red-200">
+                                <strong>⚠️ Detail Error Repliz:</strong> {{ post.error_message }}
+                            </div>
+
                             <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
                                 <div class="flex items-center gap-2">
                                     <span>Target:</span>

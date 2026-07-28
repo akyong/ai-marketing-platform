@@ -51,35 +51,53 @@ class ReplizService
                 Log::error('Repliz Fetch Accounts Failed', ['status' => $accountResponse->status(), 'body' => $accountResponse->body()]);
                 $post->update([
                     'status' => 'failed',
-                    'error_message' => "Repliz Auth/Account Error (Status {$accountResponse->status()}): Kunci Access/Secret Key tidak valid.",
+                    'error_message' => "Repliz Auth Error (Status {$accountResponse->status()}): Kunci Access/Secret Key Repliz tidak valid.",
                 ]);
                 return false;
             }
 
-            $accountsData = $accountResponse->json('data') ?? $accountResponse->json() ?? [];
-            if (empty($accountsData)) {
+            $accountsData = $accountResponse->json('data') ?? $accountResponse->json('items') ?? $accountResponse->json() ?? [];
+            if (empty($accountsData) || ! is_array($accountsData)) {
                 $post->update([
                     'status' => 'failed',
-                    'error_message' => "Belum ada akun media sosial yang dihubungkan di Dashboard Repliz Anda. Silakan hubungkan akun sosmed di Repliz terlebih dahulu.",
+                    'error_message' => "Belum ada akun media sosial yang terhubung di Dashboard Repliz Anda (GET /public/account kosong). Silakan hubungkan akun sosmed di Repliz dulu.",
                 ]);
                 return false;
             }
 
-            // Step 2: Post schedule to each connected account or first account
+            // Step 2: Post schedule to each connected account
             $scheduleSuccesses = 0;
             $lastReplizId = null;
+            $lastErrorDetails = [];
             $hasMedia = ! empty($post->media_urls);
 
             foreach ($accountsData as $acc) {
+                if (! is_array($acc)) continue;
+
                 $accountId = $acc['id'] ?? $acc['_id'] ?? null;
+                $platformType = strtolower($acc['type'] ?? 'facebook');
                 if (! $accountId) continue;
 
+                // Instagram & TikTok require image/video media. If text-only, attach default brand image fallback.
+                $postType = $hasMedia ? 'image' : 'text';
+                $mediasPayload = array_map(fn($url) => ['type' => 'image', 'url' => $url], $post->media_urls ?? []);
+
+                if (! $hasMedia && in_array($platformType, ['instagram', 'tiktok', 'youtube'])) {
+                    $postType = 'image';
+                    $mediasPayload = [
+                        [
+                            'type' => 'image',
+                            'url' => 'https://waperu.com/images/og-image.png',
+                        ]
+                    ];
+                }
+
                 $schedulePayload = [
-                    'title' => $post->title,
+                    'title' => mb_substr($post->title, 0, 100),
                     'description' => $post->content,
-                    'topic' => 'Gotiau AI Marketing',
-                    'type' => $hasMedia ? 'image' : 'text',
-                    'medias' => array_map(fn($url) => ['type' => 'image', 'url' => $url], $post->media_urls ?? []),
+                    'topic' => 'AI Marketing',
+                    'type' => $postType,
+                    'medias' => $mediasPayload,
                     'accountId' => $accountId,
                     'scheduleAt' => now()->toISOString(),
                 ];
@@ -91,7 +109,9 @@ class ReplizService
                     $resData = $response->json();
                     $lastReplizId = $resData['id'] ?? $resData['_id'] ?? $lastReplizId;
                 } else {
-                    Log::error("Repliz Schedule Failed for Account {$accountId}", ['status' => $response->status(), 'body' => $response->body()]);
+                    $errMsg = $response->json('message') ?? $response->json('error.message') ?? $response->body();
+                    $lastErrorDetails[] = "[{$platformType}]: Status {$response->status()} - {$errMsg}";
+                    Log::error("Repliz Schedule Failed for Account {$accountId} ({$platformType})", ['status' => $response->status(), 'body' => $response->body()]);
                 }
             }
 
@@ -100,13 +120,18 @@ class ReplizService
                     'status' => 'published',
                     'published_at' => now(),
                     'repliz_post_id' => $lastReplizId ?? 'repliz_' . uniqid(),
+                    'error_message' => null,
                 ]);
                 return true;
             }
 
+            $errorSummary = ! empty($lastErrorDetails)
+                ? implode(' | ', $lastErrorDetails)
+                : 'Gagal membuat jadwal di Seluruh Akun Repliz.';
+
             $post->update([
                 'status' => 'failed',
-                'error_message' => 'Gagal membuat jadwal di Seluruh Akun Repliz. Pastikan izin posting akun sosmed di Repliz aktif.',
+                'error_message' => $errorSummary,
             ]);
             return false;
 
