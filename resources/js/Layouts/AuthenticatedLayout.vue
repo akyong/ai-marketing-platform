@@ -69,6 +69,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     💬 CS AI Widget
                                 </NavLink>
+                                <NavLink
+                                    :href="route('logs.index')"
+                                    :active="route().current('logs.*')"
+                                >
+                                    📋 System Logs
+                                </NavLink>
                             </div>
                         </div>
 

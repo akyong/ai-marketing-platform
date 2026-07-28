@@ -80,6 +80,10 @@ Route::middleware('auth')->group(function () {
     // Guide & Setup Handbook route
     Route::get('/guide', [\App\Http\Controllers\GuideController::class, 'index'])->name('guide.index');
 
+    // System Log Viewer (laravel.log) routes
+    Route::get('/logs', [\App\Http\Controllers\LogViewerController::class, 'index'])->name('logs.index');
+    Route::post('/logs/clear', [\App\Http\Controllers\LogViewerController::class, 'clear'])->name('logs.clear');
+
     // Posts & Publishing Engine routes
     Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
