@@ -64,10 +64,16 @@ Route::middleware('auth')->group(function () {
     // CS Live Chat Widget Settings route
     Route::get('/widget/settings', function (Request $request) {
         $workspace = $request->user()->currentWorkspace;
+        if ($workspace && empty($workspace->widget_key)) {
+            $workspace->update([
+                'widget_key' => 'ws_' . str_replace('-', '_', $workspace->slug) . '_' . substr(md5(uniqid()), 0, 8),
+            ]);
+            $workspace = $workspace->fresh();
+        }
         return Inertia::render('Widget/Index', [
             'workspace' => $workspace,
             'brand' => $workspace?->brands->first(),
-            'appUrl' => config('app.url', 'http://localhost:8000'),
+            'appUrl' => config('app.url', 'https://gotiau.com'),
         ]);
     })->name('widget.index');
 

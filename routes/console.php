@@ -21,6 +21,14 @@ Artisan::command('workspace:fix-all', function () {
         ]
     );
 
+    foreach (Workspace::all() as $ws) {
+        if (empty($ws->widget_key)) {
+            $ws->update([
+                'widget_key' => 'ws_' . str_replace('-', '_', $ws->slug) . '_' . substr(md5(uniqid()), 0, 8),
+            ]);
+        }
+    }
+
     $users = User::all();
     foreach ($users as $user) {
         if (! $user->workspaces()->where('workspace_id', $workspace->id)->exists()) {
@@ -29,5 +37,5 @@ Artisan::command('workspace:fix-all', function () {
         $user->update(['current_workspace_id' => $workspace->id]);
     }
 
-    $this->info("✅ Berhasil menghubungkan {$users->count()} akun user ke Waperu Workspace!");
+    $this->info("✅ Berhasil menghubungkan {$users->count()} akun user & memperbarui Widget Key!");
 })->purpose('Menghubungkan seluruh akun user ke Waperu Workspace');
