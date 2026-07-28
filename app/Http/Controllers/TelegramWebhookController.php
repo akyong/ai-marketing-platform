@@ -42,12 +42,14 @@ class TelegramWebhookController extends Controller
                 case '/start':
                 case '/help':
                     $reply = "🤖 <b>AI Marketer Telegram Controller ({$brandName})</b>\n\n" .
-                        "Halo {$senderName}! Anda bisa mengontrol AI Marketer otonom dari Telegram:\n\n" .
+                        "Halo {$senderName}! Anda bisa mengontrol & memberi masukan langsung ke AI Marketer dari Telegram:\n\n" .
                         "📌 <b>Perintah Tersedia:</b>\n" .
-                        "• /stats — Cek status & statistik marketing hari ini\n" .
-                        "• /generate — Jalankan 3-step riset & buat campaign baru\n" .
                         "• /postnow — 🚀 <b>Test Instant Post Ke Repliz Sekarang!</b>\n" .
-                        "• Atau ketik pesan langsung untuk berdiskusi strategi AI!";
+                        "• /generate — Jalankan 3-step riset & buat campaign baru\n" .
+                        "• /stats — Cek status & statistik marketing hari ini\n" .
+                        "• /memory — 🧠 Lihat daftar memori/catatan masukan yang diingat AI\n" .
+                        "• /clearmemory — Hapus seluruh memori catatan AI\n\n" .
+                        "💡 <i>Kirim pesan biasa (misal: 'buat postingan lebih santai dan sebut bosku') untuk memberikan masukan yang langsung diingat permanen oleh AI!</i>";
                     $telegram->sendMessage($chatId, $reply);
                     return response()->json(['status' => 'command_processed']);
 
@@ -57,14 +59,44 @@ class TelegramWebhookController extends Controller
                     $scheduledCount = Post::where('workspace_id', $workspace?->id)->where('status', 'scheduled')->count();
                     $publishedCount = Post::where('workspace_id', $workspace?->id)->where('status', 'published')->count();
                     $activeKeys = ApiKey::where('is_active', true)->count();
+                    $memoryCount = AiGeneration::where('workspace_id', $workspace?->id)->where('type', 'user_memory_rule')->count();
 
                     $reply = "📊 <b>Statistik AI Marketer ({$brandName}) Hari Ini</b>\n\n" .
                         "• 🧠 Total Eksekusi AI: <b>{$genCount}</b>\n" .
+                        "• 🧠 Memori Masukan Tersimpan: <b>{$memoryCount} Catatan</b>\n" .
                         "• ⏳ Postingan Terjadwal: <b>{$scheduledCount}</b>\n" .
                         "• 🚀 Postingan Published (Repliz): <b>{$publishedCount}</b>\n" .
                         "• 🔑 Active API Keys Pool: <b>{$activeKeys}</b>\n\n" .
                         "Status Autopilot: 🟢 <b>AKTIF 24/7</b>";
                     $telegram->sendMessage($chatId, $reply);
+                    return response()->json(['status' => 'command_processed']);
+
+                case '/memory':
+                case '/memori':
+                case '/rules':
+                    $memoryRules = AiGeneration::where('workspace_id', $workspace?->id)
+                        ->where('type', 'user_memory_rule')
+                        ->latest()
+                        ->take(10)
+                        ->pluck('prompt')
+                        ->map(fn($r, $i) => ($i + 1) . ". " . $r)
+                        ->implode("\n");
+
+                    if (empty($memoryRules)) {
+                        $reply = "🧠 <b>Memori AI Kosong</b>\n\nBelum ada masukan khusus dari Anda. Kirim pesan biasa (misal: <i>'buat postingan lebih santai dan sebut bosku'</i>) untuk mencatat masukan baru yang diingat permanen oleh AI!";
+                    } else {
+                        $reply = "🧠 <b>Daftar Catatan & Masukan Tersimpan ({$brandName}):</b>\n\n" .
+                            htmlspecialchars($memoryRules) . "\n\n" .
+                            "💡 <i>Ketik /clearmemory jika ingin menghapus seluruh memori.</i>";
+                    }
+                    $telegram->sendMessage($chatId, $reply);
+                    return response()->json(['status' => 'command_processed']);
+
+                case '/clearmemory':
+                    AiGeneration::where('workspace_id', $workspace?->id)
+                        ->where('type', 'user_memory_rule')
+                        ->delete();
+                    $telegram->sendMessage($chatId, "🧹 <b>Seluruh memori & catatan khusus AI telah dibersihkan!</b>");
                     return response()->json(['status' => 'command_processed']);
 
                 case '/generate':
@@ -121,29 +153,38 @@ class TelegramWebhookController extends Controller
             }
         }
 
-        // Process custom text prompt with Gemini AI
-        $aiResponse = $gemini->generate($userText, $brand);
+        // Process custom text / feedback from Telegram user and save to AI Memory Engine
+        $distillPrompt = "Pengguna memberikan masukan/perintah berikut untuk strategi marketing brand {$brandName}:\n\"{$userText}\"\n\n" .
+            "Tuliskan 1 kalimat instruksi/aturan singkat (dalam Bahasa Indonesia) yang wajib ditaati AI untuk postingan-postingan berikutnya. " .
+            "Format: 'Catatan Pengguna: [aturan]'";
 
-        // Record AI Generation in database
+        $distilledRule = $gemini->generate($distillPrompt, $brand);
+
+        // Clean distilled rule
+        $distilledRule = trim(str_replace(['**', '###'], '', $distilledRule));
+
+        // Store memory rule in database
         if ($workspace) {
             AiGeneration::create([
                 'workspace_id' => $workspace->id,
-                'type' => 'telegram_chat',
-                'prompt' => $userText,
-                'response_text' => $aiResponse,
+                'type' => 'user_memory_rule',
+                'prompt' => $distilledRule,
+                'response_text' => $userText,
                 'status' => 'completed',
                 'metadata' => [
                     'telegram_chat_id' => $chatId,
                     'sender_name' => $senderName,
+                    'original_message' => $userText,
                 ],
             ]);
         }
 
-        // Format message for Telegram
-        $replyText = "🤖 <b>AI Marketing Team ({$brandName})</b>\n\n" .
-            htmlspecialchars($aiResponse);
+        // Format confirmation message for Telegram
+        $replyText = "🧠 <b>Masukan & Catatan Disimpan Ke Memori AI!</b>\n\n" .
+            "📌 <b>Aturan Memori Baru:</b>\n<i>" . htmlspecialchars($distilledRule) . "</i>\n\n" .
+            "💡 <i>Seluruh kampanye & postingan AI berikutnya (termasuk yang dijadwalkan & via /postnow) otomatis mematuhi catatan ini!</i>\n\n" .
+            "Ketik /memory untuk melihat seluruh memori tersimpan.";
 
-        // Send reply back to Telegram
         $telegram->sendMessage($chatId, $replyText);
 
         return response()->json(['status' => 'success']);

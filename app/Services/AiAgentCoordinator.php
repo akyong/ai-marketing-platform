@@ -41,15 +41,20 @@ class AiAgentCoordinator
             $prospectInsights .= "Gunakan keluhan/topik audiens di atas sebagai bahan utama untuk menjawab kebutuhan seller secara relevan!\n\n";
         }
 
-        // 🧠 Step 1: Memory Recall — Read recent post history to prevent repetition & evolve strategy
-        $pastPostsSummary = Post::where('workspace_id', $workspace->id)
+        // 🧠 Step 0.5: Fetch Saved User Memory Rules (Directives sent by user via Telegram / UI)
+        $userMemoryRules = AiGeneration::where('workspace_id', $workspace->id)
+            ->where('type', 'user_memory_rule')
             ->latest()
-            ->take(6)
-            ->pluck('title')
-            ->map(fn($title) => "- " . mb_substr($title, 0, 70))
+            ->take(10)
+            ->pluck('prompt')
+            ->map(fn($rule) => "• " . $rule)
             ->implode("\n");
 
-        $memoryContext = $prospectInsights . (! empty($pastPostsSummary)
+        $userMemoryContext = ! empty($userMemoryRules)
+            ? "⚠️ CATATAN & INSTRUKSI KHUSUS PENGGUNA (WAJIB DITAATI 100%):\n{$userMemoryRules}\n\n"
+            : "";
+
+        $memoryContext = $userMemoryContext . $prospectInsights . (! empty($pastPostsSummary)
             ? "RIWAYAT POSTINGAN SEBELUMNYA (DILARANG Ulangi Angle/Hook Yang Sama):\n{$pastPostsSummary}\n\n"
             : "Ini adalah postingan awal kampanye. Buatkan konsep paling segar dan menarik.\n\n");
 
