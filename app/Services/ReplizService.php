@@ -114,13 +114,14 @@ class ReplizService
                     ];
                 }
 
+                $cleanContent = $this->sanitizeForSocialMedia($post->content, $platformType);
                 $repliesPayload = [];
-                $description = $post->content;
+                $description = $cleanContent;
 
                 // Handle platform-specific character limits & Threads nested thread splitting
                 if ($platformType === 'threads') {
-                    $chunks = $this->splitTextIntoChunks($post->content, 480);
-                    $description = $chunks[0] ?? $post->content;
+                    $chunks = $this->splitTextIntoChunks($cleanContent, 480);
+                    $description = $chunks[0] ?? $cleanContent;
 
                     if (count($chunks) > 1) {
                         for ($i = 1; $i < count($chunks); $i++) {
@@ -225,5 +226,40 @@ class ReplizService
         }
 
         return $chunks;
+    }
+
+    /**
+     * Smart Social Media Text Sanitizer: strips AI meta-text, markdown syntax, and formats clean text
+     */
+    public function sanitizeForSocialMedia(string $text, string $platform = 'facebook'): string
+    {
+        // 1. Remove internal AI intros if present
+        $text = preg_replace('/^(Halo!|Sebagai|Berikut|Berikut adalah).*?(menganalisis|strategi|konten).*?(\n\n|\n)/i', '', $text);
+        $text = preg_replace('/###?\s*Analisis Strategis.*?\n\n/is', '', $text);
+        $text = preg_replace('/####?\s*Panduan Visual.*$/is', '', $text);
+        $text = preg_replace('/####?\s*\d+\.\s*Panduan Visual.*?\n/is', '', $text);
+        $text = preg_replace('/(Format|Tema):\s*.*?\n/i', '', $text);
+
+        // 2. Convert Markdown links [Text](URL) -> Text (URL) or just URL if identical
+        $text = preg_replace_callback('/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/', function ($m) {
+            return trim($m[1]) === trim($m[2]) ? $m[2] : "{$m[1]} ({$m[2]})";
+        }, $text);
+
+        // 3. Remove Markdown bold/italic syntax **word** / *word* / __word__ -> word
+        $text = preg_replace('/\*\*([^*]+)\*\*/', '$1', $text);
+        $text = preg_replace('/\*([^*]+)\*/', '$1', $text);
+        $text = preg_replace('/__([^_]+)__/', '$1', $text);
+        $text = preg_replace('/_([^_]+)_/', '$1', $text);
+
+        // 4. Remove Markdown headers (### Header -> Header)
+        $text = preg_replace('/#{1,6}\s*/', '', $text);
+
+        // 5. Remove horizontal rules (--- or ***)
+        $text = preg_replace('/(?:\r?\n|\r)\s*[-*_]{3,}\s*(?:\r?\n|\r)/', "\n\n", $text);
+
+        // 6. Clean multiple consecutive newlines
+        $text = preg_replace("/\n{3,}/", "\n\n", $text);
+
+        return trim($text);
     }
 }

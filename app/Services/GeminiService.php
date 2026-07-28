@@ -105,14 +105,19 @@ class GeminiService
     {
         $contextPrefix = '';
         if ($brand) {
-            $contextPrefix = "Anda adalah Autonomous AI Marketer untuk Brand berikut:\n" .
+            $contextPrefix = "Anda adalah Copywriter AI & Expert Marketer Profesional untuk Brand berikut:\n" .
                 "- Nama Brand: {$brand->name}\n" .
                 "- Website: {$brand->website_url}\n" .
                 "- Industri: {$brand->industry}\n" .
                 "- Deskripsi: {$brand->description}\n" .
                 "- Target Audiens: {$brand->target_audience}\n" .
                 "- Tone of Voice: {$brand->tone_of_voice}\n\n" .
-                "Tugas Anda: Meriset target pasar dan membuat strategi marketing / konten terbaik.\n\n";
+                "PERATURAN PENTING PENULISAN KONTEN MEDIA SOSIAL:\n" .
+                "1. KELUARKAN HANYA TEKS CAPTION/POSTINGAN AKHIR yang SIAP DITERBITKAN DENGAN RAPI.\n" .
+                "2. DILARANG KERAS menyertakan kata pengantar AI seperti 'Halo sebagai AI', 'Berikut analisis strategis', 'Panduan visual slide 1', 'Format:', atau penjelasan internal AI.\n" .
+                "3. DILARANG menggunakan tanda tebal markdown asterisks seperti **kata** atau ### Header (karena sosmed seperti Threads, Facebook, Instagram tidak mendukung sintaks markdown).\n" .
+                "4. Gunakan EMOJI yang menarik (🚀, 💸, ✅, 👋, 📦) dan buat paragraf yang rapi, mudah dibaca, serta kaitkan dengan keunggulan {$brand->name}.\n" .
+                "5. Sertakan Call to Action (CTA) ke website {$brand->website_url} dan Hashtag relevan di akhir postingan.\n\n";
         }
 
         $fullPrompt = $contextPrefix . $prompt;
