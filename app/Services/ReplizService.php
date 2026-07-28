@@ -51,16 +51,31 @@ class ReplizService
                 Log::error('Repliz Fetch Accounts Failed', ['status' => $accountResponse->status(), 'body' => $accountResponse->body()]);
                 $post->update([
                     'status' => 'failed',
-                    'error_message' => "Repliz Auth Error (Status {$accountResponse->status()}): Kunci Access/Secret Key Repliz tidak valid.",
+                    'error_message' => "Repliz Auth Error (Status {$accountResponse->status()}): Access/Secret Key tidak valid. Body: " . $accountResponse->body(),
                 ]);
                 return false;
             }
 
-            $accountsData = $accountResponse->json('data') ?? $accountResponse->json('items') ?? $accountResponse->json() ?? [];
-            if (empty($accountsData) || ! is_array($accountsData)) {
+            $rawJson = $accountResponse->json();
+            Log::info('Repliz GET /public/account Raw Response', ['raw' => $rawJson]);
+
+            // Parse accounts array flexibly
+            if (isset($rawJson['data']) && is_array($rawJson['data'])) {
+                $accountsData = $rawJson['data'];
+            } elseif (isset($rawJson['accounts']) && is_array($rawJson['accounts'])) {
+                $accountsData = $rawJson['accounts'];
+            } elseif (isset($rawJson['items']) && is_array($rawJson['items'])) {
+                $accountsData = $rawJson['items'];
+            } elseif (is_array($rawJson) && isset($rawJson[0])) {
+                $accountsData = $rawJson;
+            } else {
+                $accountsData = [];
+            }
+
+            if (empty($accountsData)) {
                 $post->update([
                     'status' => 'failed',
-                    'error_message' => "Belum ada akun media sosial yang terhubung di Dashboard Repliz Anda (GET /public/account kosong). Silakan hubungkan akun sosmed di Repliz dulu.",
+                    'error_message' => "Belum ada akun media sosial yang terhubung di Dashboard Repliz. Respon Repliz: " . $accountResponse->body(),
                 ]);
                 return false;
             }
@@ -74,9 +89,13 @@ class ReplizService
             foreach ($accountsData as $acc) {
                 if (! is_array($acc)) continue;
 
-                $accountId = $acc['id'] ?? $acc['_id'] ?? null;
-                $platformType = strtolower($acc['type'] ?? 'facebook');
-                if (! $accountId) continue;
+                $accountId = $acc['_id'] ?? $acc['id'] ?? $acc['generatedId'] ?? null;
+                $platformType = strtolower($acc['type'] ?? $acc['platform'] ?? 'facebook');
+
+                if (! $accountId) {
+                    $lastErrorDetails[] = "ID Akun Kosong pada Objek Account";
+                    continue;
+                }
 
                 // Instagram & TikTok require image/video media. If text-only, attach default brand image fallback.
                 $postType = $hasMedia ? 'image' : 'text';
@@ -111,8 +130,8 @@ class ReplizService
                     $resData = $response->json();
                     $lastReplizId = $resData['id'] ?? $resData['_id'] ?? $lastReplizId;
                 } else {
-                    $errMsg = $response->json('message') ?? $response->json('error.message') ?? $response->body();
-                    $lastErrorDetails[] = "[{$platformType}]: Status {$response->status()} - {$errMsg}";
+                    $errMsg = $response->json('message') ?? $response->json('error.message') ?? $response->json('error') ?? $response->body();
+                    $lastErrorDetails[] = "[{$platformType} ({$accountId})]: Status {$response->status()} - {$errMsg}";
                     Log::error("Repliz Schedule Failed for Account {$accountId} ({$platformType})", ['status' => $response->status(), 'body' => $response->body()]);
                 }
             }
