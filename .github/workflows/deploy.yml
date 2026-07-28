@@ -21,10 +21,12 @@ jobs:
           script: |
             cd /var/www/ai-marketing-platform || exit 1
             git config --global --add safe.directory /var/www/ai-marketing-platform
+            chmod -R 777 /var/www/ai-marketing-platform/public/build 2>/dev/null || true
             git fetch origin main
             git reset --hard origin/main
             docker compose down
             docker compose up -d --build
+            docker compose exec -T app composer install --ignore-platform-reqs --no-interaction --prefer-dist
             docker compose exec -T app npm install
             docker compose exec -T app npm run build
             docker compose exec -T app php artisan migrate --force
