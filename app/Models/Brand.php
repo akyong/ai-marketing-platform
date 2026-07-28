@@ -20,6 +20,8 @@ class Brand extends Model
         'industry',
         'target_audience',
         'tone_of_voice',
+        'knowledge_base',
+        'custom_rules',
         'social_links',
     ];
 

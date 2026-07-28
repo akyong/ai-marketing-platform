@@ -20,6 +20,8 @@ const brandForm = useForm({
     description: props.brand?.description || '',
     target_audience: props.brand?.target_audience || '',
     tone_of_voice: props.brand?.tone_of_voice || '',
+    knowledge_base: props.brand?.knowledge_base || '',
+    custom_rules: props.brand?.custom_rules || '',
 });
 
 const newWorkspaceForm = useForm({
@@ -178,6 +180,32 @@ const createWorkspace = () => {
                                 placeholder="Profesional, Empatis, Semangat Pejuang, Langsung ke Solusi..."
                             ></textarea>
                             <InputError class="mt-2" :message="brandForm.errors.tone_of_voice" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="knowledge_base" value="🧠 Knowledge Base Brand (Fakta Kunci & Panduan Resmi)" />
+                            <textarea
+                                id="knowledge_base"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
+                                rows="4"
+                                v-model="brandForm.knowledge_base"
+                                placeholder="1. Waperu.com adalah platform toko online mandiri 0% komisi...&#10;2. Landing Page & Scrape Produk...&#10;3. Referensi resmi: https://waperu.com/guides"
+                            ></textarea>
+                            <p class="mt-1 text-xs text-gray-500">Poin-poin fakta, keunggulan produk, & link panduan resmi yang otomatis dibaca & diingat oleh AI Engine.</p>
+                            <InputError class="mt-2" :message="brandForm.errors.knowledge_base" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="custom_rules" value="📜 Aturan Khusus Penulisan AI (Custom Prompt Rules)" />
+                            <textarea
+                                id="custom_rules"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
+                                rows="4"
+                                v-model="brandForm.custom_rules"
+                                placeholder="1. Dilarang mengaku sebagai AI atau Bot.&#10;2. Dilarang menggunakan tanda tebal asterisks **...&#10;3. Gunakan sapaan Bosku..."
+                            ></textarea>
+                            <p class="mt-1 text-xs text-gray-500">Aturan ketat penulisan gaya bahasa yang wajib ditaati AI saat mempublikasikan konten ke sosial media.</p>
+                            <InputError class="mt-2" :message="brandForm.errors.custom_rules" />
                         </div>
 
                         <div class="flex items-center gap-4">

@@ -26,6 +26,8 @@ class BrandController extends Controller
             'description' => 'nullable|string',
             'target_audience' => 'nullable|string',
             'tone_of_voice' => 'nullable|string',
+            'knowledge_base' => 'nullable|string',
+            'custom_rules' => 'nullable|string',
             'social_links' => 'nullable|array',
         ]);
 
