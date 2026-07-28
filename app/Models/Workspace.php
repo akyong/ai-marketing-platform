@@ -24,9 +24,23 @@ class Workspace extends Model
     {
         static::creating(function ($workspace) {
             if (empty($workspace->widget_key)) {
-                $workspace->widget_key = 'ws_' . str_replace('-', '_', $workspace->slug) . '_' . substr(md5(uniqid()), 0, 8);
+                $workspace->widget_key = 'ws_' . str_replace('-', '_', $workspace->slug ?? 'waperu') . '_' . substr(md5(uniqid()), 0, 8);
             }
         });
+    }
+
+    public function getWidgetKeyAttribute($value): string
+    {
+        if (empty($value) || $value === 'null') {
+            $generated = 'ws_' . str_replace('-', '_', $this->slug ?? 'waperu') . '_' . substr(md5($this->id ?? 1), 0, 8);
+            if ($this->exists && $this->getOriginal('widget_key') !== $generated) {
+                $this->attributes['widget_key'] = $generated;
+                \DB::table('workspaces')->where('id', $this->id)->update(['widget_key' => $generated]);
+            }
+            return $generated;
+        }
+
+        return $value;
     }
 
     public function owner(): BelongsTo

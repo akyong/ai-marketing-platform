@@ -14,7 +14,8 @@ const copiedSnippet = ref(false);
 
 const snippetCode = computed(() => {
     const baseUrl = props.appUrl || 'https://gotiau.com';
-    const activeKey = props.workspace?.widget_key || 'ws_waperu_key';
+    const key = props.workspace?.widget_key;
+    const activeKey = (key && key !== 'null' && key !== 'undefined') ? key : 'ws_waperu_83e7d1fd';
     return `<script src="${baseUrl}/embed/chat.js" data-widget-key="${activeKey}"><\/script>`;
 });
 
