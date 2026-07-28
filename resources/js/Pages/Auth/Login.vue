@@ -3,7 +3,6 @@ import Checkbox from '@/Components/Checkbox.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
@@ -26,11 +25,6 @@ const submit = () => {
     form.post(route('login'), {
         onFinish: () => form.reset('password'),
     });
-};
-
-const fillDemoAdmin = () => {
-    form.email = 'admin@waperu.com';
-    form.password = 'password';
 };
 </script>
 
@@ -114,17 +108,6 @@ const fillDemoAdmin = () => {
                     class="w-full rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                 >
                     {{ form.processing ? 'Memproses Login...' : 'Masuk ke Platform 🚀' }}
-                </button>
-            </div>
-
-            <!-- Quick Demo Credentials Filler Button -->
-            <div class="pt-2">
-                <button
-                    type="button"
-                    @click="fillDemoAdmin"
-                    class="w-full rounded-xl border border-dashed border-indigo-300 bg-indigo-50/50 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
-                >
-                    ⚡ Isi Otomatis Akun Admin Waperu
                 </button>
             </div>
 
