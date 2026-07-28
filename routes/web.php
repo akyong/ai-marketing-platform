@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Controllers\WorkspaceController;
@@ -47,6 +48,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/api-keys', [ApiKeyController::class, 'store'])->name('api-keys.store');
     Route::patch('/api-keys/{apiKey}/toggle', [ApiKeyController::class, 'toggle'])->name('api-keys.toggle');
     Route::delete('/api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
+
+    // Posts & Publishing Engine routes
+    Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
+    Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
+    Route::post('/posts/{post}/publish', [PostController::class, 'publishNow'])->name('posts.publish');
+    Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 
     // AI Generation Routes
     Route::post('/ai/generate', function (Request $request, GeminiService $gemini) {

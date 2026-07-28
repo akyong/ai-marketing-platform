@@ -57,6 +57,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     🔑 API Key Pool
                                 </NavLink>
+                                <NavLink
+                                    :href="route('posts.index')"
+                                    :active="route().current('posts.*')"
+                                >
+                                    📢 Publishing Engine
+                                </NavLink>
                             </div>
                         </div>
 
