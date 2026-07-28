@@ -5,6 +5,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TelegramWebhookController;
+use App\Http\Controllers\WidgetChatController;
 use App\Http\Controllers\WorkspaceController;
 use App\Models\AiGeneration;
 use App\Models\ApiKey;
@@ -60,6 +61,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/api-keys/{apiKey}/toggle', [ApiKeyController::class, 'toggle'])->name('api-keys.toggle');
     Route::delete('/api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
 
+    // CS Live Chat Widget Settings route
+    Route::get('/widget/settings', function (Request $request) {
+        $workspace = $request->user()->currentWorkspace;
+        return Inertia::render('Widget/Index', [
+            'workspace' => $workspace,
+            'brand' => $workspace?->brands->first(),
+            'appUrl' => config('app.url', 'http://localhost:8000'),
+        ]);
+    })->name('widget.index');
+
     // Guide & Setup Handbook route
     Route::get('/guide', [\App\Http\Controllers\GuideController::class, 'index'])->name('guide.index');
 
@@ -101,6 +112,10 @@ Route::middleware('auth')->group(function () {
         return redirect()->back()->with('success', 'Autonomous Campaign AI Berhasil Dijalankan!');
     })->name('ai.autonomous');
 });
+
+// Public Widget CS API
+Route::post('/api/widget/chat', [WidgetChatController::class, 'handleChat'])->name('widget.chat');
+Route::get('/api/widget/history', [WidgetChatController::class, 'getHistory'])->name('widget.history');
 
 // Telegram Webhook
 Route::post('/api/telegram/webhook', [TelegramWebhookController::class, 'handle'])->name('telegram.webhook');

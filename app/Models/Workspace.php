@@ -17,7 +17,17 @@ class Workspace extends Model
         'owner_id',
         'name',
         'slug',
+        'widget_key',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function ($workspace) {
+            if (empty($workspace->widget_key)) {
+                $workspace->widget_key = 'ws_' . str_replace('-', '_', $workspace->slug) . '_' . substr(md5(uniqid()), 0, 8);
+            }
+        });
+    }
 
     public function owner(): BelongsTo
     {

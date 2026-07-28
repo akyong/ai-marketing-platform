@@ -69,6 +69,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     📖 Panduan Autopilot
                                 </NavLink>
+                                <NavLink
+                                    :href="route('widget.index')"
+                                    :active="route().current('widget.*')"
+                                >
+                                    💬 Widget CS AI
+                                </NavLink>
                             </div>
                         </div>
 
