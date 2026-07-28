@@ -27,7 +27,8 @@ jobs:
             export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
             cd /var/www/ai-marketing-platform || exit 1
             git config --global --add safe.directory /var/www/ai-marketing-platform
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             docker compose down
             docker compose up -d --build
             docker compose exec -T app php artisan migrate --force
