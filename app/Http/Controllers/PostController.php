@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Services\GeminiService;
 use App\Services\ReplizService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,6 +68,33 @@ class PostController extends Controller
         }
 
         return redirect()->back()->with('error', 'Gagal mempublikasikan konten. Cek log/error.');
+    }
+
+    public function instantGenerateAndPublish(Request $request, GeminiService $gemini, ReplizService $repliz): RedirectResponse
+    {
+        $user = $request->user();
+        $workspace = $user->currentWorkspace;
+        $brand = $workspace?->brands->first();
+
+        $aiPrompt = "Buatkan 1 konten promosi menarik untuk " . ($brand?->name ?? 'Waperu') . " yang siap diterbitkan hari ini di Instagram, TikTok, Facebook, dan X.";
+        $content = $gemini->generate($aiPrompt, $brand);
+
+        $post = Post::create([
+            'workspace_id' => $workspace?->id,
+            'brand_id' => $brand?->id,
+            'title' => "Promosi Instant Test - " . now()->format('Y-m-d H:i'),
+            'content' => $content,
+            'platforms' => ['instagram', 'facebook', 'tiktok', 'twitter'],
+            'status' => 'draft',
+        ]);
+
+        $success = $repliz->publish($post);
+
+        if ($success) {
+            return redirect()->back()->with('success', '🚀 Test Instant Post Berhasil Terkirim ke Repliz! (ID: ' . $post->repliz_post_id . ')');
+        }
+
+        return redirect()->back()->with('error', 'Gagal kirim ke Repliz: ' . ($post->error_message ?? 'Cek kunci API Repliz Anda'));
     }
 
     public function destroy(Post $post): RedirectResponse

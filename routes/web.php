@@ -87,6 +87,7 @@ Route::middleware('auth')->group(function () {
     // Posts & Publishing Engine routes
     Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
+    Route::post('/posts/instant', [PostController::class, 'instantGenerateAndPublish'])->name('posts.instant');
     Route::post('/posts/{post}/publish', [PostController::class, 'publishNow'])->name('posts.publish');
     Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 

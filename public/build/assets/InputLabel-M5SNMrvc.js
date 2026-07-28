@@ -1,1 +1,0 @@
-import{E as e,P as t,_ as n,w as r}from"./app-BlaOuP6D.js";var i={class:`block text-sm font-medium text-gray-700`},a={key:0},o={key:1},s={__name:`InputLabel`,props:{value:{type:String}},setup(s){return(c,l)=>(r(),n(`label`,i,[s.value?(r(),n(`span`,a,t(s.value),1)):(r(),n(`span`,o,[e(c.$slots,`default`)]))]))}};export{s as t};

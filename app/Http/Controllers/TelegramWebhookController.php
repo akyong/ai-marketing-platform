@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Models\Workspace;
 use App\Services\AiAgentCoordinator;
 use App\Services\GeminiService;
+use App\Services\ReplizService;
 use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,7 +46,7 @@ class TelegramWebhookController extends Controller
                         "📌 <b>Perintah Tersedia:</b>\n" .
                         "• /stats — Cek status & statistik marketing hari ini\n" .
                         "• /generate — Jalankan 3-step riset & buat campaign baru\n" .
-                        "• /publish — Cek postingan yang siap tayang di Repliz\n" .
+                        "• /postnow — 🚀 <b>Test Instant Post Ke Repliz Sekarang!</b>\n" .
                         "• Atau ketik pesan langsung untuk berdiskusi strategi AI!";
                     $telegram->sendMessage($chatId, $reply);
                     return response()->json(['status' => 'command_processed']);
@@ -78,6 +79,41 @@ class TelegramWebhookController extends Controller
                         "📌 <b>Hasil Copywriting & Jadwal:</b>\n\n" .
                         mb_substr($result['copywriting'], 0, 1000) . "...\n\n" .
                         "<i>Postingan telah dijadwalkan dan akan diterbitkan otomatis via Repliz!</i>";
+                    $telegram->sendMessage($chatId, $reply);
+                    return response()->json(['status' => 'command_processed']);
+
+                case '/postnow':
+                case '/instant':
+                case '/publishnow':
+                    $telegram->sendMessage($chatId, "🚀 <i>AI Marketer sedang membuat materi postingan & mempublikasikan INSTAN ke Repliz...</i>");
+
+                    $aiPrompt = "Buatkan 1 konten promosi menarik untuk {$brandName} yang siap diterbitkan hari ini di Instagram, TikTok, Facebook, dan X.";
+                    $content = $gemini->generate($aiPrompt, $brand);
+
+                    $post = Post::create([
+                        'workspace_id' => $workspace?->id,
+                        'brand_id' => $brand?->id,
+                        'title' => "Promosi Instant {$brandName} - " . now()->format('Y-m-d H:i'),
+                        'content' => $content,
+                        'platforms' => ['instagram', 'facebook', 'tiktok', 'twitter'],
+                        'status' => 'draft',
+                    ]);
+
+                    $repliz = new ReplizService();
+                    $success = $repliz->publish($post);
+
+                    if ($success) {
+                        $reply = "🚀 <b>BERHASIL POST INSTAN KE REPLIZ!</b>\n\n" .
+                            "📌 <b>Judul:</b> {$post->title}\n" .
+                            "🌐 <b>Platform Target:</b> Instagram, Facebook, TikTok, X\n" .
+                            "🆔 <b>Repliz Post ID:</b> {$post->repliz_post_id}\n\n" .
+                            "<b>Preview Copywriting:</b>\n" .
+                            mb_substr($post->content, 0, 800) . "...";
+                    } else {
+                        $reply = "❌ <b>GAGAL DIPUBLIKASIKAN KE REPLIZ</b>\n\n" .
+                            "Log Error: " . htmlspecialchars($post->error_message ?? 'Kunci API Repliz belum aktif atau gagal autentikasi.');
+                    }
+
                     $telegram->sendMessage($chatId, $reply);
                     return response()->json(['status' => 'command_processed']);
             }

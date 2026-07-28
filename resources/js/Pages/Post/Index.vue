@@ -12,6 +12,18 @@ const props = defineProps({
 });
 
 const activeTab = ref('all');
+const isPublishingInstant = ref(false);
+
+const testInstantPost = () => {
+    if (confirm('AI akan langsung membuat 1 materi postingan baru dan mempublikasikannya INSTAN ke Repliz sekarang. Lanjutkan?')) {
+        isPublishingInstant.value = true;
+        useForm({}).post(route('posts.instant'), {
+            onFinish: () => {
+                isPublishingInstant.value = false;
+            }
+        });
+    }
+};
 
 const postForm = useForm({
     title: '',
@@ -62,17 +74,26 @@ const deletePost = (postId) => {
         <div class="py-12">
             <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                 <!-- Repliz Status Banner -->
-                <div class="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
-                    <div>
+                <div class="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900 flex-wrap gap-3">
+                    <div class="flex-1">
                         <strong>🔌 Status Integrasi Repliz:</strong> 
                         Setiap postingan yang dibuat atau di-generate otomatis oleh AI Marketer akan dikirimkan ke Repliz Engine untuk diterbitkan ke Instagram, Facebook, TikTok, dan X.
                     </div>
-                    <a
-                        :href="route('api-keys.index')"
-                        class="shrink-0 rounded bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700"
-                    >
-                        ⚙️ Atur API Key Repliz
-                    </a>
+                    <div class="flex items-center gap-2">
+                        <button
+                            @click="testInstantPost"
+                            :disabled="isPublishingInstant"
+                            class="shrink-0 rounded bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow hover:bg-emerald-700 disabled:opacity-50 transition"
+                        >
+                            🚀 {{ isPublishingInstant ? 'Memproses Repliz...' : 'Test Instant Post Now' }}
+                        </button>
+                        <a
+                            :href="route('api-keys.index')"
+                            class="shrink-0 rounded bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
+                        >
+                            ⚙️ Atur Key Repliz
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Create Post / Draft Form -->
