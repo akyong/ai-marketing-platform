@@ -21,14 +21,15 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: false
           script: |
+            source ~/.bashrc 2>/dev/null || true
+            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
             cd /var/www/ai-marketing-platform || exit 1
+            git config --global --add safe.directory /var/www/ai-marketing-platform
             git pull origin main
-            npm run build
             docker compose down
             docker compose up -d --build
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan workspace:fix-all
             docker compose exec -T app php artisan config:clear
-            docker compose exec -T app php artisan route:clear
-            docker compose exec -T app php artisan view:clear
