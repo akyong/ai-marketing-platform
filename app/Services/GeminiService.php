@@ -159,7 +159,7 @@ class GeminiService
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key={$apiKey}";
 
             try {
-                $response = Http::timeout(25)->post($url, [
+                $response = Http::connectTimeout(15)->timeout(35)->post($url, [
                     'contents' => [
                         [
                             'role' => 'user',
@@ -205,8 +205,8 @@ class GeminiService
                 $jsonError = $response->json('error.message') ?? $body;
                 return ['success' => false, 'text' => null, 'error' => "Status {$status}: {$jsonError}"];
             } catch (\Exception $e) {
-                Log::error('Gemini Service Exception', ['error' => $e->getMessage()]);
-                return ['success' => false, 'text' => null, 'error' => $e->getMessage()];
+                Log::warning("Gemini Model {$modelName} Exception (retrying next model): {$e->getMessage()}");
+                continue;
             }
         }
 
