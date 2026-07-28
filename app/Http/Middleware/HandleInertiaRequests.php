@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Brand;
+use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,7 +38,31 @@ class HandleInertiaRequests extends Middleware
         if ($user) {
             $workspaces = $user->workspaces()->get();
 
-            if (!$user->current_workspace_id && $workspaces->isNotEmpty()) {
+            // Auto-provision default Waperu Workspace if user has no workspace
+            if ($workspaces->isEmpty()) {
+                $workspace = Workspace::create([
+                    'owner_id' => $user->id,
+                    'name' => 'Waperu Workspace',
+                    'slug' => 'waperu-' . substr(md5(uniqid()), 0, 4),
+                ]);
+
+                $workspace->users()->attach($user->id, ['role' => 'owner']);
+                $user->update(['current_workspace_id' => $workspace->id]);
+
+                Brand::create([
+                    'workspace_id' => $workspace->id,
+                    'name' => 'Waperu',
+                    'website_url' => 'https://waperu.com',
+                    'description' => 'Platform toko online mandiri 0% komisi untuk seller COD dan UMKM Indonesia.',
+                    'industry' => 'E-Commerce Platform / SaaS',
+                    'target_audience' => 'Online Sellers, Pejuang COD, UMKM, Retail Merchants',
+                    'tone_of_voice' => 'Professional, Empathetic, Empowering, Direct',
+                ]);
+
+                $workspaces = $user->workspaces()->get();
+            }
+
+            if (! $user->current_workspace_id && $workspaces->isNotEmpty()) {
                 $user->update(['current_workspace_id' => $workspaces->first()->id]);
             }
 
