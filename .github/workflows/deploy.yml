@@ -15,7 +15,6 @@ jobs:
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
-        if: ${{ secrets.VPS_HOST != '' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
@@ -23,14 +22,14 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           script_stop: false
           script: |
-            source ~/.bashrc 2>/dev/null || true
-            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
             cd /var/www/ai-marketing-platform || exit 1
             git config --global --add safe.directory /var/www/ai-marketing-platform
             git fetch origin main
             git reset --hard origin/main
             docker compose down
             docker compose up -d --build
+            docker compose exec -T app npm install
+            docker compose exec -T app npm run build
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan workspace:fix-all
             docker compose exec -T app php artisan optimize:clear
