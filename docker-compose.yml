@@ -15,6 +15,7 @@ services:
     image: nginx:latest
     container_name: amp_nginx
     ports:
+      - "80:80"
       - "8000:80"
     volumes:
       - ./:/var/www/html
