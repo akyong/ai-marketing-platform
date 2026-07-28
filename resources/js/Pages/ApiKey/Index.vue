@@ -84,6 +84,7 @@ const deleteKey = (keyId) => {
                                 v-model="keyForm.provider"
                             >
                                 <option value="gemini">Google Gemini</option>
+                                <option value="repliz">Repliz API Key (Social Media Publishing)</option>
                                 <option value="telegram">Telegram Bot Token</option>
                                 <option value="openai">OpenAI</option>
                                 <option value="claude">Anthropic Claude</option>

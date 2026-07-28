@@ -29,7 +29,7 @@ class ApiKeyController extends Controller
     {
         $validated = $request->validate([
             'key_name' => 'required|string|max:255',
-            'provider' => 'required|string|in:gemini,openai,claude,telegram',
+            'provider' => 'required|string|in:gemini,openai,claude,telegram,repliz',
             'api_key' => 'required|string',
         ]);
 

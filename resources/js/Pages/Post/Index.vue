@@ -61,6 +61,20 @@ const deletePost = (postId) => {
 
         <div class="py-12">
             <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <!-- Repliz Status Banner -->
+                <div class="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
+                    <div>
+                        <strong>🔌 Status Integrasi Repliz:</strong> 
+                        Setiap postingan yang dibuat atau di-generate otomatis oleh AI Marketer akan dikirimkan ke Repliz Engine untuk diterbitkan ke Instagram, Facebook, TikTok, dan X.
+                    </div>
+                    <a
+                        :href="route('api-keys.index')"
+                        class="shrink-0 rounded bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-indigo-700"
+                    >
+                        ⚙️ Atur API Key Repliz
+                    </a>
+                </div>
+
                 <!-- Create Post / Draft Form -->
                 <div class="bg-white p-6 shadow sm:rounded-lg">
                     <h3 class="text-lg font-medium text-gray-900 mb-2">
