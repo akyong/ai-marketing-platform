@@ -29,10 +29,32 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $currentWorkspace = null;
+        $workspaces = [];
+
+        if ($user) {
+            $workspaces = $user->workspaces()->get();
+
+            if (!$user->current_workspace_id && $workspaces->isNotEmpty()) {
+                $user->update(['current_workspace_id' => $workspaces->first()->id]);
+            }
+
+            if ($user->current_workspace_id) {
+                $currentWorkspace = $user->currentWorkspace()->with('defaultBrand')->first();
+            }
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'current_workspace' => $currentWorkspace,
+                'workspaces' => $workspaces,
+            ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
             ],
         ];
     }

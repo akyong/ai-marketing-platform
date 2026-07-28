@@ -5,6 +5,7 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
+import WorkspaceSwitcher from '@/Components/WorkspaceSwitcher.vue';
 import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
@@ -29,6 +30,11 @@ const showingNavigationDropdown = ref(false);
                                 </Link>
                             </div>
 
+                            <!-- Workspace Switcher -->
+                            <div class="flex items-center ms-4">
+                                <WorkspaceSwitcher />
+                            </div>
+
                             <!-- Navigation Links -->
                             <div
                                 class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
@@ -38,6 +44,12 @@ const showingNavigationDropdown = ref(false);
                                     :active="route().current('dashboard')"
                                 >
                                     Dashboard
+                                </NavLink>
+                                <NavLink
+                                    :href="route('workspace.settings')"
+                                    :active="route().current('workspace.settings')"
+                                >
+                                    Workspace & Brand
                                 </NavLink>
                             </div>
                         </div>
