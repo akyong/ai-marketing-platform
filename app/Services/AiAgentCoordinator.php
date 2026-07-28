@@ -60,12 +60,12 @@ class AiAgentCoordinator
 
         // 🎯 Step 2: Content Pillar Rotation (Select 3 distinct pillars per run)
         $allPillars = [
-            "Pilar 1: Pain Point Komisi Marketplace (Simulasi perbandingan rugi komisi vs untung utuh 0% Waperu)",
-            "Pilar 2: Edukasi Praktis (Cara buat toko online mandiri + QRIS dalam 60 detik)",
-            "Pilar 3: Storytelling Pejuang Rupiah (Perjuangan seller membangun brand sendiri tanpa takut diblokir)",
-            "Pilar 4: Fitur Highlight COD (Kelancaran cashflow & kemudahan kirim paket COD tanpa pusing)",
-            "Pilar 5: Kedaulatan Bisnis (Miliki database pelanggan sendiri, bukan sekadar numpang jualan)",
-            "Pilar 6: CTA & FOMO (Momentum terbaik ubah toko online Anda sekarang juga)",
+            "Pilar 1: Branding Sosmed Mandiri (Solusi jualan di Instagram, TikTok, Threads, FB tanpa ketergantungan marketplace & bebas biaya admin tinggi)",
+            "Pilar 2: Landing Page & Scrape Produk (Bikin toko online mandiri instan & fitur scrape produk cepat tanpa repot input manual)",
+            "Pilar 3: 0% Komisi & Cashflow Lancar (Keuntungan 100% milik seller utuh, pembayaran QRIS & COD langsung ke rekening tanpa potongan)",
+            "Pilar 4: Kedaulatan Bisnis & Data Pelanggan (Bangun aset & database pembeli toko sendiri di sosial media tanpa takut akun diblokir)",
+            "Pilar 5: Edukasi & Solusi Seller (Belajar panduan sukses jualan mandiri di https://waperu.com/guides)",
+            "Pilar 6: Storytelling Pejuang Rupiah (Kisah sukses seller yang bebas dari biaya komisi admin marketplace mahal)",
         ];
 
         // Shuffle & pick 3 pillars for today's 3 posts

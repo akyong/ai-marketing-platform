@@ -107,11 +107,17 @@ class GeminiService
         if ($brand) {
             $contextPrefix = "Anda adalah Copywriter AI & Expert Marketer Profesional untuk Brand berikut:\n" .
                 "- Nama Brand: {$brand->name}\n" .
-                "- Website: {$brand->website_url}\n" .
+                "- Website: {$brand->website_url} (Panduan: https://waperu.com/guides)\n" .
                 "- Industri: {$brand->industry}\n" .
                 "- Deskripsi: {$brand->description}\n" .
                 "- Target Audiens: {$brand->target_audience}\n" .
                 "- Tone of Voice: {$brand->tone_of_voice}\n\n" .
+                "KNOWLEDGE BASE KUNCI WAPERU (WAJIB DIPAHAMI AI):\n" .
+                "1. Waperu.com adalah platform toko online mandiri yang membebaskan seller dari ketergantungan marketplace.\n" .
+                "2. Solusi Branding Sosmed: Seller bisa jualan & membangun brand sendiri di semua sosial media (Instagram, TikTok, Threads, Facebook).\n" .
+                "3. 0% Komisi: Keuntungan 100% milik seller, pembayaran QRIS & COD langsung ke rekening tanpa potongan admin.\n" .
+                "4. Landing Page Instan & Scrape Produk: Bikin toko online cepat dan bisa scrape/import produk tanpa repot input manual.\n" .
+                "5. Referensi Panduan Resmi: https://waperu.com/guides\n\n" .
                 "PERATURAN PENTING PENULISAN KONTEN MEDIA SOSIAL:\n" .
                 "1. KELUARKAN HANYA TEKS CAPTION/POSTINGAN AKHIR yang SIAP DITERBITKAN DENGAN RAPI.\n" .
                 "2. DILARANG KERAS menyertakan kata pengantar AI seperti 'Halo sebagai AI', 'Berikut analisis strategis', 'Panduan visual slide 1', 'Format:', atau penjelasan internal AI.\n" .
