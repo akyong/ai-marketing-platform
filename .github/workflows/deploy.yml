@@ -24,16 +24,12 @@ jobs:
           script_stop: false
           script: |
             source ~/.bashrc 2>/dev/null || true
-            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:~/.nvm/versions/node/$(ls ~/.nvm/versions/node 2>/dev/null | tail -n 1)/bin
+            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
             cd /var/www/ai-marketing-platform || exit 1
             git config --global --add safe.directory /var/www/ai-marketing-platform
             git pull origin main
-            npm install || true
-            npm run build || true
             docker compose down
             docker compose up -d --build
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan workspace:fix-all
-            docker compose exec -T app php artisan config:clear
-            docker compose exec -T app php artisan route:clear
-            docker compose exec -T app php artisan view:clear
+            docker compose exec -T app php artisan optimize:clear
