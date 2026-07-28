@@ -68,6 +68,11 @@ class HandleInertiaRequests extends Middleware
 
             if ($user->current_workspace_id) {
                 $currentWorkspace = $user->currentWorkspace()->with('defaultBrand')->first();
+                if ($currentWorkspace && empty($currentWorkspace->widget_key)) {
+                    $generatedKey = 'ws_' . str_replace('-', '_', $currentWorkspace->slug) . '_' . substr(md5(uniqid()), 0, 8);
+                    $currentWorkspace->update(['widget_key' => $generatedKey]);
+                    $currentWorkspace = $currentWorkspace->fresh(['defaultBrand']);
+                }
             }
         }
 

@@ -13,8 +13,9 @@ const props = defineProps({
 const copiedSnippet = ref(false);
 
 const snippetCode = computed(() => {
-    const baseUrl = props.appUrl || 'http://localhost:8000';
-    return `<script src="${baseUrl}/embed/chat.js" data-widget-key="${props.workspace?.widget_key}"><\/script>`;
+    const baseUrl = props.appUrl || 'https://gotiau.com';
+    const activeKey = props.workspace?.widget_key || 'ws_waperu_key';
+    return `<script src="${baseUrl}/embed/chat.js" data-widget-key="${activeKey}"><\/script>`;
 });
 
 const copySnippet = () => {
