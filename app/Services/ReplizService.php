@@ -100,6 +100,7 @@ class ReplizService
                 }
 
                 // Instagram & TikTok require image/video media. If text-only, attach default brand image fallback.
+                $bannerUrl = config('app.url', 'https://gotiau.com') . '/waperu-banner.png';
                 $postType = $hasMedia ? 'image' : 'text';
                 $mediasPayload = array_map(fn($url) => ['type' => 'image', 'url' => $url], $post->media_urls ?? []);
 
@@ -108,16 +109,22 @@ class ReplizService
                     $mediasPayload = [
                         [
                             'type' => 'image',
-                            'url' => 'https://waperu.com/images/og-image.png',
+                            'url' => $bannerUrl,
                         ]
                     ];
+                }
+
+                // Threads API enforces max 500 characters for text/caption
+                $description = $post->content;
+                if ($platformType === 'threads' && mb_strlen($description) > 480) {
+                    $description = mb_substr($description, 0, 475) . '...';
                 }
 
                 $scheduleTime = $post->scheduled_at ? $post->scheduled_at->toISOString() : now()->addMinutes(2)->toISOString();
 
                 $schedulePayload = [
-                    'title' => mb_substr($post->title, 0, 100),
-                    'description' => $post->content,
+                    'title' => mb_substr($post->title, 0, 80),
+                    'description' => $description,
                     'topic' => 'AI Marketing',
                     'type' => $postType,
                     'medias' => $mediasPayload,
