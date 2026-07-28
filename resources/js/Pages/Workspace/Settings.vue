@@ -187,7 +187,7 @@ const createWorkspace = () => {
                             <textarea
                                 id="knowledge_base"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
-                                rows="4"
+                                rows="10"
                                 v-model="brandForm.knowledge_base"
                                 placeholder="1. Waperu.com adalah platform toko online mandiri 0% komisi...&#10;2. Landing Page & Scrape Produk...&#10;3. Referensi resmi: https://waperu.com/guides"
                             ></textarea>
@@ -200,7 +200,7 @@ const createWorkspace = () => {
                             <textarea
                                 id="custom_rules"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
-                                rows="4"
+                                rows="10"
                                 v-model="brandForm.custom_rules"
                                 placeholder="1. Dilarang mengaku sebagai AI atau Bot.&#10;2. Dilarang menggunakan tanda tebal asterisks **...&#10;3. Gunakan sapaan Bosku..."
                             ></textarea>

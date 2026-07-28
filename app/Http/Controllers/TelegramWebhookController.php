@@ -42,14 +42,17 @@ class TelegramWebhookController extends Controller
                 case '/start':
                 case '/help':
                     $reply = "🤖 <b>AI Marketer Telegram Controller ({$brandName})</b>\n\n" .
-                        "Halo {$senderName}! Anda bisa mengontrol & memberi masukan langsung ke AI Marketer dari Telegram:\n\n" .
-                        "📌 <b>Perintah Tersedia:</b>\n" .
-                        "• /postnow — 🚀 <b>Test Instant Post Ke Repliz Sekarang!</b>\n" .
-                        "• /generate — Jalankan 3-step riset & buat campaign baru\n" .
+                        "Halo {$senderName}! Anda bisa mengontrol & minta AI membuat postingan dari ide Anda langsung dari Telegram:\n\n" .
+                        "📌 <b>Cara Minta Postingan dengan Ide Anda:</b>\n" .
+                        "• <code>/postnow [ide Anda]</code> — 🚀 <b>Post Instan Sekarang dengan ide spesifik!</b>\n" .
+                        "  <i>Contoh: <code>/postnow buat postingan promo fitur scrape produk instan ke landing page Waperu</code></i>\n\n" .
+                        "• <code>/generate [ide Anda]</code> — 🎯 <b>Buat 3 postingan terjadwal hari ini dari ide Anda!</b>\n" .
+                        "  <i>Contoh: <code>/generate buat campaign edukasi seller COD bebas biaya admin</code></i>\n\n" .
+                        "📌 <b>Perintah Lainnya:</b>\n" .
                         "• /stats — Cek status & statistik marketing hari ini\n" .
                         "• /memory — 🧠 Lihat daftar memori/catatan masukan yang diingat AI\n" .
                         "• /clearmemory — Hapus seluruh memori catatan AI\n\n" .
-                        "💡 <i>Kirim pesan biasa (misal: 'buat postingan lebih santai dan sebut bosku') untuk memberikan masukan yang langsung diingat permanen oleh AI!</i>";
+                        "💡 <i>Atau kirim pesan biasa tanpa slash untuk memberikan catatan/aturan baru yang diingat permanen oleh AI!</i>";
                     $telegram->sendMessage($chatId, $reply);
                     return response()->json(['status' => 'command_processed']);
 
@@ -100,14 +103,20 @@ class TelegramWebhookController extends Controller
                     return response()->json(['status' => 'command_processed']);
 
                 case '/generate':
-                    $telegram->sendMessage($chatId, "⚡ <i>AI Marketer sedang meriset pasar & menyusun campaign 3-step... Mohon tunggu sebentar.</i>");
+                    $customIdea = trim(substr($userText, strlen('/generate')));
+                    $promptToUse = ! empty($customIdea)
+                        ? $customIdea
+                        : "Buat strategi marketing harian untuk menarik seller online dan UMKM ke {$brandName}";
+
+                    $telegram->sendMessage($chatId, "⚡ <i>AI Marketer sedang meriset pasar & menyusun campaign dengan ide: \"<b>" . htmlspecialchars($promptToUse) . "</b>\"... Mohon tunggu sebentar.</i>");
 
                     $result = $coordinator->runAutonomousCampaign(
                         $workspace,
-                        "Buat strategi marketing harian untuk menarik seller online dan UMKM ke {$brandName}"
+                        $promptToUse
                     );
 
                     $reply = "✅ <b>Autonomous Campaign Berhasil Dihasilkan!</b>\n\n" .
+                        "📌 <b>Ide Utama:</b> " . htmlspecialchars($promptToUse) . "\n\n" .
                         "📌 <b>Hasil Copywriting & Jadwal:</b>\n\n" .
                         mb_substr($result['copywriting'], 0, 1000) . "...\n\n" .
                         "<i>Postingan telah dijadwalkan dan akan diterbitkan otomatis via Repliz!</i>";
@@ -117,11 +126,17 @@ class TelegramWebhookController extends Controller
                 case '/postnow':
                 case '/instant':
                 case '/publishnow':
-                    $telegram->sendMessage($chatId, "🚀 <i>AI Marketer v3 (Self-Learning + Social Listening) sedang meriset pasar & menerbitkan POSTINGAN INSTAN ke Repliz...</i>");
+                    $cmdUsed = explode(' ', $userText)[0];
+                    $customIdea = trim(substr($userText, strlen($cmdUsed)));
+                    $promptToUse = ! empty($customIdea)
+                        ? $customIdea
+                        : "Buat postingan promosi instan untuk {$brandName} yang menjawab keluhan seller online saat ini";
+
+                    $telegram->sendMessage($chatId, "🚀 <i>AI Marketer v3 sedang menyusun & menerbitkan POSTINGAN INSTAN dengan ide: \"<b>" . htmlspecialchars($promptToUse) . "</b>\" ke Repliz...</i>");
 
                     $campaignResult = $coordinator->runAutonomousCampaign(
                         $workspace,
-                        "Buat postingan promosi instan untuk {$brandName} yang menjawab keluhan seller online saat ini"
+                        $promptToUse
                     );
 
                     // Fetch the latest created scheduled post to publish immediately
@@ -131,10 +146,14 @@ class TelegramWebhookController extends Controller
 
                     if ($latestPost) {
                         $repliz = new ReplizService();
+                        $latestPost->content = $repliz->sanitizeForSocialMedia($latestPost->content);
+                        $latestPost->save();
+
                         $success = $repliz->publish($latestPost);
 
                         if ($success) {
                             $reply = "🚀 <b>BERHASIL POST INSTAN KE REPLIZ!</b>\n\n" .
+                                "📌 <b>Ide Topik:</b> " . htmlspecialchars($promptToUse) . "\n" .
                                 "📌 <b>Judul:</b> {$latestPost->title}\n" .
                                 "🌐 <b>Platform Target:</b> Facebook, Instagram, Threads, TikTok\n" .
                                 "🆔 <b>Repliz Post ID:</b> {$latestPost->repliz_post_id}\n\n" .
