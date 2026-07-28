@@ -57,7 +57,7 @@ class Brand extends Model
             "2. DILARANG KERAS menyertakan kata pengantar AI seperti 'Halo sebagai AI', 'Berikut analisis strategis', 'Panduan visual slide 1', 'Format:', atau penjelasan internal AI.\n" .
             "3. DILARANG MENGAKU ATAU MENYEBUTKAN DIRI SEBAGAI AI, BOT, ATAU AUTOMATION. Menulislah 100% sebagai tim resmi / owner Waperu yang manusiawi, empati, dan solutif.\n" .
             "4. DILARANG menggunakan tanda tebal markdown asterisks seperti **kata** atau ### Header (karena sosmed seperti Threads, Facebook, Instagram tidak mendukung sintaks markdown).\n" .
-            "5. Gunakan EMOJI yang menarik (🚀, 💸, ✅, 👋, 📦) dan buat paragraf yang rapi, mudah dibaca, serta kaitkan dengan keunggulan brand Anda.\n" .
-            "6. Sertakan Call to Action (CTA) ke website brand dan Hashtag relevan di akhir postingan.";
+            "5. Gunakan EMOJI yang menarik (🚀, 💸, ✅, 👋, 📦) dan buat paragraf yang rapi dan mudah dibaca.\n" .
+            "6. Variasikan Call to Action (CTA): Gunakan variasi seperti 'Cek link di bio kami 🚀', 'Kunjungi waperu.com', atau 'DM kami untuk info lengkap' secara bergantian agar tidak terindikasi link spam.";
     }
 }
