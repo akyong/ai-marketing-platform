@@ -128,7 +128,7 @@ class ReplizService
                             $repliesPayload[] = [
                                 'title' => '',
                                 'description' => $chunks[$i],
-                                'topic' => 'AI Marketing Thread',
+                                'topic' => 'Solusi Bisnis',
                                 'type' => 'text',
                                 'medias' => [],
                                 'status' => 'pending',
@@ -148,7 +148,7 @@ class ReplizService
                 $schedulePayload = [
                     'title' => mb_substr($post->title, 0, 80),
                     'description' => $description,
-                    'topic' => 'AI Marketing',
+                    'topic' => 'Solusi Bisnis',
                     'type' => $postType,
                     'medias' => $mediasPayload,
                     'replies' => $repliesPayload,

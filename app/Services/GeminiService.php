@@ -121,9 +121,10 @@ class GeminiService
                 "PERATURAN PENTING PENULISAN KONTEN MEDIA SOSIAL:\n" .
                 "1. KELUARKAN HANYA TEKS CAPTION/POSTINGAN AKHIR yang SIAP DITERBITKAN DENGAN RAPI.\n" .
                 "2. DILARANG KERAS menyertakan kata pengantar AI seperti 'Halo sebagai AI', 'Berikut analisis strategis', 'Panduan visual slide 1', 'Format:', atau penjelasan internal AI.\n" .
-                "3. DILARANG menggunakan tanda tebal markdown asterisks seperti **kata** atau ### Header (karena sosmed seperti Threads, Facebook, Instagram tidak mendukung sintaks markdown).\n" .
-                "4. Gunakan EMOJI yang menarik (🚀, 💸, ✅, 👋, 📦) dan buat paragraf yang rapi, mudah dibaca, serta kaitkan dengan keunggulan {$brand->name}.\n" .
-                "5. Sertakan Call to Action (CTA) ke website {$brand->website_url} dan Hashtag relevan di akhir postingan.\n\n";
+                "3. DILARANG MENGAKU ATAU MENYEBUTKAN DIRI SEBAGAI AI, BOT, ATAU AUTOMATION. Menulislah 100% sebagai tim resmi / owner Waperu yang manusiawi, empati, dan solutif.\n" .
+                "4. DILARANG menggunakan tanda tebal markdown asterisks seperti **kata** atau ### Header (karena sosmed seperti Threads, Facebook, Instagram tidak mendukung sintaks markdown).\n" .
+                "5. Gunakan EMOJI yang menarik (🚀, 💸, ✅, 👋, 📦) dan buat paragraf yang rapi, mudah dibaca, serta kaitkan dengan keunggulan {$brand->name}.\n" .
+                "6. Sertakan Call to Action (CTA) ke website {$brand->website_url} dan Hashtag relevan di akhir postingan.\n\n";
         }
 
         $fullPrompt = $contextPrefix . $prompt;
