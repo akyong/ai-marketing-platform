@@ -60,6 +60,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/api-keys/{apiKey}/toggle', [ApiKeyController::class, 'toggle'])->name('api-keys.toggle');
     Route::delete('/api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
 
+    // Guide & Setup Handbook route
+    Route::get('/guide', [\App\Http\Controllers\GuideController::class, 'index'])->name('guide.index');
+
     // Posts & Publishing Engine routes
     Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
