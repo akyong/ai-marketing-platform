@@ -8,32 +8,8 @@ on:
 
 jobs:
   laravel-tests:
+    name: Run Automated Tests
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_DB: ai_marketing_platform
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout Code
@@ -43,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, pdo, pdo_pgsql, zip
+          extensions: mbstring, pdo, pdo_sqlite, zip
           coverage: none
 
       - name: Setup Node.js
@@ -70,20 +46,12 @@ jobs:
 
       - name: Run Database Migrations
         env:
-          DB_CONNECTION: pgsql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_DATABASE: ai_marketing_platform
-          DB_USERNAME: postgres
-          DB_PASSWORD: postgres
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
         run: php artisan migrate --force
 
       - name: Run Tests
         env:
-          DB_CONNECTION: pgsql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_DATABASE: ai_marketing_platform
-          DB_USERNAME: postgres
-          DB_PASSWORD: postgres
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
         run: php artisan test
