@@ -41,11 +41,11 @@ class ApiKey extends Model
         $this->update(['last_used_at' => now()]);
     }
 
-    public function markQuotaExceeded(int $hoursToCooldown = 1): void
+    public function markQuotaExceeded(int $secondsToCooldown = 30): void
     {
         $this->increment('error_count');
         $this->update([
-            'quota_exceeded_until' => now()->addHours($hoursToCooldown),
+            'quota_exceeded_until' => now()->addSeconds($secondsToCooldown),
         ]);
     }
 }

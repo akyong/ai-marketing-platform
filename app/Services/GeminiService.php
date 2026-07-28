@@ -57,8 +57,20 @@ class GeminiService
             Log::warning("Gemini Key '{$keyRecord->key_name}' bermasalah: {$lastErrorMessage}");
         }
 
-        return "⚠️ Gagal memanggil Google Gemini API.\n\nDetail Error: {$lastErrorMessage}\n\n" .
-            "💡 Solusi: Buka https://aistudio.google.com/app/apikey dan pastikan API Key Anda aktif.";
+        // Ultimate Fallback: Try .env GEMINI_API_KEY if available
+        $envKey = config('services.gemini.key', env('GEMINI_API_KEY', ''));
+        if (! empty($envKey)) {
+            $envResult = $this->executeApiCallWithDetails($envKey, $prompt, $brand);
+            if ($envResult['success']) {
+                return $envResult['text'];
+            }
+            if (! empty($envResult['error'])) {
+                $lastErrorMessage = $envResult['error'];
+            }
+        }
+
+        return "⚠️ Gagal memanggil Google Gemini API.\n\nDetail Error: " . ($lastErrorMessage ?: 'Batas kuota 15 RPM tercapai.') . "\n\n" .
+            "💡 Solusi: Buka https://aistudio.google.com/app/apikey dan tambahkan 1 API Key gratis lagi ke Key Pool (https://gotiau.com/api-keys).";
     }
 
     /**
@@ -174,10 +186,13 @@ class GeminiService
                 $status = $response->status();
                 $body = $response->body();
 
-                // If 429 Rate Limit
-                if ($status === 429 && $keyRecord) {
-                    $keyRecord->markQuotaExceeded(1);
-                    return ['success' => false, 'text' => null, 'error' => "Rate Limit Hit (429)"];
+                // If 429 Rate Limit (15 RPM limit), mark short 30-second cooldown, sleep 2s, and try next key
+                if ($status === 429) {
+                    if ($keyRecord) {
+                        $keyRecord->markQuotaExceeded(30);
+                    }
+                    sleep(2);
+                    continue;
                 }
 
                 // Try next model silently if 404 or 400
