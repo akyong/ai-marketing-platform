@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TelegramWebhookController;
@@ -39,6 +40,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
     Route::post('/workspaces/{workspace}/switch', [WorkspaceController::class, 'switchWorkspace'])->name('workspaces.switch');
     Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+
+    // API Keys Pool routes
+    Route::get('/api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');
+    Route::post('/api-keys', [ApiKeyController::class, 'store'])->name('api-keys.store');
+    Route::patch('/api-keys/{apiKey}/toggle', [ApiKeyController::class, 'toggle'])->name('api-keys.toggle');
+    Route::delete('/api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
 
     // AI Generation Test Route
     Route::post('/ai/generate', function (Request $request, GeminiService $gemini) {

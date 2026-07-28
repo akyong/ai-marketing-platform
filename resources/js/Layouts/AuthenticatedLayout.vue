@@ -51,6 +51,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Workspace & Brand
                                 </NavLink>
+                                <NavLink
+                                    :href="route('api-keys.index')"
+                                    :active="route().current('api-keys.*')"
+                                >
+                                    🔑 API Key Pool
+                                </NavLink>
                             </div>
                         </div>
 
