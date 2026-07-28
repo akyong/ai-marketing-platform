@@ -66,7 +66,7 @@ class GeminiService
      */
     protected function getAvailableApiKeys(?int $workspaceId)
     {
-        return ApiKey::where('provider', 'gemini')
+        $keys = ApiKey::where('provider', 'gemini')
             ->where('is_active', true)
             ->where(function ($q) use ($workspaceId) {
                 $q->whereNull('workspace_id');
@@ -80,6 +80,22 @@ class GeminiService
             })
             ->orderByRaw('last_used_at ASC NULLS FIRST')
             ->get();
+
+        // Fallback: If all active keys are currently on cooldown, unlock them and try anyway!
+        if ($keys->isEmpty()) {
+            $allActiveKeys = ApiKey::where('provider', 'gemini')
+                ->where('is_active', true)
+                ->get();
+
+            if ($allActiveKeys->isNotEmpty()) {
+                foreach ($allActiveKeys as $k) {
+                    $k->update(['quota_exceeded_until' => null]);
+                }
+                return $allActiveKeys;
+            }
+        }
+
+        return $keys;
     }
 
     /**

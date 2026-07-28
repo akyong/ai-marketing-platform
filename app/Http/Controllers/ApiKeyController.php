@@ -54,9 +54,12 @@ class ApiKeyController extends Controller
 
     public function toggle(ApiKey $apiKey): RedirectResponse
     {
-        $apiKey->update(['is_active' => ! $apiKey->is_active]);
+        $apiKey->update([
+            'is_active' => ! $apiKey->is_active,
+            'quota_exceeded_until' => null,
+        ]);
 
-        return redirect()->back()->with('success', 'Status API Key berhasil diperbarui.');
+        return redirect()->back()->with('success', 'Status API Key berhasil diperbarui & cooldown di-reset.');
     }
 
     public function destroy(ApiKey $apiKey): RedirectResponse
