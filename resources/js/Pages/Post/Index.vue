@@ -4,7 +4,7 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
@@ -13,11 +13,13 @@ const props = defineProps({
 
 const activeTab = ref('all');
 const isPublishingInstant = ref(false);
+const publishingPostId = ref(null);
 
 const testInstantPost = () => {
     if (confirm('AI akan langsung membuat 1 materi postingan baru dan mempublikasikannya INSTAN ke Repliz sekarang. Lanjutkan?')) {
         isPublishingInstant.value = true;
-        useForm({}).post(route('posts.instant'), {
+        router.post(route('posts.instant'), {}, {
+            preserveScroll: true,
             onFinish: () => {
                 isPublishingInstant.value = false;
             }
@@ -45,13 +47,19 @@ const createPost = () => {
 
 const publishNow = (postId) => {
     if (confirm('Apakah Anda yakin ingin langsung mempublikasikan postingan ini ke Social Media via Repliz?')) {
-        useForm({}).post(route('posts.publish', postId));
+        publishingPostId.value = postId;
+        router.post(route('posts.publish', postId), {}, {
+            preserveScroll: true,
+            onFinish: () => {
+                publishingPostId.value = null;
+            }
+        });
     }
 };
 
 const deletePost = (postId) => {
     if (confirm('Hapus postingan ini?')) {
-        useForm({}).delete(route('posts.destroy', postId));
+        router.delete(route('posts.destroy', postId), { preserveScroll: true });
     }
 };
 </script>
@@ -262,9 +270,10 @@ const deletePost = (postId) => {
                                     <button
                                         v-if="post.status !== 'published'"
                                         @click="publishNow(post.id)"
-                                        class="rounded bg-emerald-600 px-3 py-1 text-xs font-bold text-white transition hover:bg-emerald-700"
+                                        :disabled="publishingPostId === post.id"
+                                        class="rounded bg-emerald-600 px-3 py-1 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50"
                                     >
-                                        🚀 Publish Now (Repliz)
+                                        🚀 {{ publishingPostId === post.id ? 'Memproses Repliz...' : 'Publish Now (Repliz)' }}
                                     </button>
                                     <button
                                         @click="deletePost(post.id)"

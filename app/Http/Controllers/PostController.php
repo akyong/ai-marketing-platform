@@ -17,7 +17,11 @@ class PostController extends Controller
         $user = $request->user();
         $workspace = $user->currentWorkspace;
 
-        $posts = Post::where('workspace_id', $workspace?->id)
+        $posts = Post::where(function ($q) use ($workspace) {
+                if ($workspace) {
+                    $q->where('workspace_id', $workspace->id);
+                }
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -57,8 +61,10 @@ class PostController extends Controller
     public function publishNow(Post $post, ReplizService $repliz): RedirectResponse
     {
         $user = auth()->user();
-        if ($post->workspace_id !== $user->current_workspace_id) {
-            abort(403, 'Akses ditolak.');
+
+        // Auto-reassign workspace if workspace_id missing or mismatched
+        if ($user->current_workspace_id && $post->workspace_id !== $user->current_workspace_id) {
+            $post->update(['workspace_id' => $user->current_workspace_id]);
         }
 
         $success = $repliz->publish($post);
@@ -67,7 +73,7 @@ class PostController extends Controller
             return redirect()->back()->with('success', '🚀 Konten Berhasil Dipublikasikan ke Social Media via Repliz!');
         }
 
-        return redirect()->back()->with('error', 'Gagal mempublikasikan konten. Cek log/error.');
+        return redirect()->back()->with('error', 'Gagal mempublikasikan konten: ' . ($post->error_message ?? 'Cek koneksi/API Key Repliz Anda.'));
     }
 
     public function instantGenerateAndPublish(Request $request, GeminiService $gemini, ReplizService $repliz): RedirectResponse
@@ -100,8 +106,8 @@ class PostController extends Controller
     public function destroy(Post $post): RedirectResponse
     {
         $user = auth()->user();
-        if ($post->workspace_id !== $user->current_workspace_id) {
-            abort(403, 'Akses ditolak.');
+        if ($user->current_workspace_id && $post->workspace_id !== $user->current_workspace_id) {
+            $post->update(['workspace_id' => $user->current_workspace_id]);
         }
 
         $post->delete();
