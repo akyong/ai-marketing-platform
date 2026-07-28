@@ -14,6 +14,8 @@ const props = defineProps({
 const brandForm = useForm({
     name: props.brand?.name || '',
     website_url: props.brand?.website_url || '',
+    logo_url: props.brand?.logo_url || '',
+    brand_color: props.brand?.brand_color || '#4F46E5',
     industry: props.brand?.industry || '',
     description: props.brand?.description || '',
     target_audience: props.brand?.target_audience || '',
@@ -95,6 +97,39 @@ const createWorkspace = () => {
                                 placeholder="https://waperu.com"
                             />
                             <InputError class="mt-2" :message="brandForm.errors.website_url" />
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <InputLabel for="logo_url" value="URL Logo Brand (PNG/SVG Transparent)" />
+                                <TextInput
+                                    id="logo_url"
+                                    type="url"
+                                    class="mt-1 block w-full"
+                                    v-model="brandForm.logo_url"
+                                    placeholder="https://waperu.com/logo.png"
+                                />
+                                <InputError class="mt-2" :message="brandForm.errors.logo_url" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="brand_color" value="Warna Utama Brand (Hex Color)" />
+                                <div class="mt-1 flex items-center gap-2">
+                                    <input
+                                        type="color"
+                                        v-model="brandForm.brand_color"
+                                        class="h-10 w-12 rounded cursor-pointer border border-gray-300"
+                                    />
+                                    <TextInput
+                                        id="brand_color"
+                                        type="text"
+                                        class="block w-full"
+                                        v-model="brandForm.brand_color"
+                                        placeholder="#4F46E5"
+                                    />
+                                </div>
+                                <InputError class="mt-2" :message="brandForm.errors.brand_color" />
+                            </div>
                         </div>
 
                         <div>

@@ -20,6 +20,8 @@ class BrandController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'website_url' => 'nullable|url|max:255',
+            'logo_url' => 'nullable|url|max:500',
+            'brand_color' => 'nullable|string|max:50',
             'industry' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'target_audience' => 'nullable|string',

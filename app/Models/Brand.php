@@ -14,6 +14,8 @@ class Brand extends Model
         'workspace_id',
         'name',
         'website_url',
+        'logo_url',
+        'brand_color',
         'description',
         'industry',
         'target_audience',
