@@ -13,7 +13,7 @@ class GeminiService
 
     public function __construct()
     {
-        $this->model = config('services.gemini.model', 'gemini-2.0-flash');
+        $this->model = config('services.gemini.model', 'gemini-1.5-flash');
     }
 
     /**
@@ -30,29 +30,35 @@ class GeminiService
             // Fallback to .env key if database key pool is empty
             $envKey = config('services.gemini.key', env('GEMINI_API_KEY', ''));
             if (! empty($envKey)) {
-                return $this->executeApiCall($envKey, $prompt, $brand);
+                $response = $this->executeApiCall($envKey, $prompt, $brand);
+                if ($response !== null) {
+                    return $response;
+                }
             }
 
-            return "🔑 Belum ada API Key Gemini di Database atau .env.\n\nSimulasi Balasan AI:\n" . $this->getMockResponse($prompt, $brand);
+            return "🔑 Belum ada API Key Gemini yang tersimpan di database.\n\n" .
+                "Silakan buka menu 🔑 Key Pool (https://gotiau.com/api-keys) dan masukkan API Key gratis dari https://aistudio.google.com/app/apikey";
         }
+
+        $lastErrorMessage = '';
 
         // Rotate & Failover through keys in the pool
         foreach ($keys as $keyRecord) {
             Log::info("Menggunakan Gemini API Key: {$keyRecord->key_name} (Usage: {$keyRecord->usage_count})");
 
-            $response = $this->executeApiCall($keyRecord->api_key, $prompt, $brand, $keyRecord);
+            $result = $this->executeApiCallWithDetails($keyRecord->api_key, $prompt, $brand, $keyRecord);
 
-            if ($response !== null) {
-                // Success! Record usage
+            if ($result['success']) {
                 $keyRecord->markUsed();
-                return $response;
+                return $result['text'];
             }
 
-            // If null was returned, quota limit or error occurred -> failover to next key!
-            Log::warning("Gemini Key '{$keyRecord->key_name}' terkena limit quota / error. Beralih ke Key berikutnya...");
+            $lastErrorMessage = $result['error'];
+            Log::warning("Gemini Key '{$keyRecord->key_name}' bermasalah: {$lastErrorMessage}");
         }
 
-        return "⚠️ Seluruh API Key Gemini di Pool sedang mengalami Kuota Limit / Error. Silakan tambahkan API Key baru di database.";
+        return "⚠️ Gagal memanggil Google Gemini API.\n\nDetail Error: {$lastErrorMessage}\n\n" .
+            "💡 Solusi: Buka https://aistudio.google.com/app/apikey dan pastikan API Key Anda aktif.";
     }
 
     /**
@@ -77,9 +83,9 @@ class GeminiService
     }
 
     /**
-     * Execute HTTP Request to Gemini API
+     * Execute HTTP Request to Gemini API with detailed error output
      */
-    protected function executeApiCall(string $apiKey, string $prompt, ?Brand $brand, ?ApiKey $keyRecord = null): ?string
+    protected function executeApiCallWithDetails(string $apiKey, string $prompt, ?Brand $brand, ?ApiKey $keyRecord = null): array
     {
         $contextPrefix = '';
         if ($brand) {
@@ -94,47 +100,60 @@ class GeminiService
         }
 
         $fullPrompt = $contextPrefix . $prompt;
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$apiKey}";
+        $modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
 
-        try {
-            $response = Http::post($url, [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => $fullPrompt]
+        foreach ($modelsToTry as $modelName) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key={$apiKey}";
+
+            try {
+                $response = Http::post($url, [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $fullPrompt]
+                            ]
                         ]
                     ]
-                ]
-            ]);
+                ]);
 
-            if ($response->successful()) {
-                $data = $response->json();
-                return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Tidak ada respon teks dari Gemini AI.';
-            }
-
-            // If 429 Too Many Requests or 403 Quota Limit
-            if (in_array($response->status(), [429, 403])) {
-                if ($keyRecord) {
-                    $keyRecord->markQuotaExceeded(1); // 1-hour cooldown for quota reset
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                    if (! empty($text)) {
+                        return ['success' => true, 'text' => $text, 'error' => null];
+                    }
                 }
-                return null; // Return null to trigger failover
-            }
 
-            Log::error('Gemini API Error', ['status' => $response->status(), 'body' => $response->body()]);
-            return null;
-        } catch (\Exception $e) {
-            Log::error('Gemini Service Exception', ['error' => $e->getMessage()]);
-            return null;
+                $status = $response->status();
+                $body = $response->body();
+
+                // If 429 Rate Limit
+                if ($status === 429 && $keyRecord) {
+                    $keyRecord->markQuotaExceeded(1);
+                    return ['success' => false, 'text' => null, 'error' => "Rate Limit Hit (429)"];
+                }
+
+                Log::error("Gemini Model {$modelName} Error", ['status' => $status, 'body' => $body]);
+
+                // Try next model if 404
+                if ($status === 404) {
+                    continue;
+                }
+
+                $jsonError = $response->json('error.message') ?? $body;
+                return ['success' => false, 'text' => null, 'error' => "Status {$status}: {$jsonError}"];
+            } catch (\Exception $e) {
+                Log::error('Gemini Service Exception', ['error' => $e->getMessage()]);
+                return ['success' => false, 'text' => null, 'error' => $e->getMessage()];
+            }
         }
+
+        return ['success' => false, 'text' => null, 'error' => 'Seluruh model Gemini API tidak merespon'];
     }
 
-    protected function getMockResponse(string $prompt, ?Brand $brand = null): string
+    protected function executeApiCall(string $apiKey, string $prompt, ?Brand $brand, ?ApiKey $keyRecord = null): ?string
     {
-        $brandName = $brand->name ?? 'Waperu';
-        return "🤖 [Respon Simulasi AI untuk {$brandName}]\n\n" .
-            "Berdasarkan analisis target audiens ({$brand->target_audience}), berikut ide strategi marketing:\n\n" .
-            "1. **Edukasi**: Jualan Online COD 0% Komisi tanpa Potongan Marketplace.\n" .
-            "2. **Solusi**: Cara Hubungkan QRIS & Ekspedisi Langsung ke Rekening Anda.\n\n" .
-            "Perintah yang diterima: \"{$prompt}\"";
+        $result = $this->executeApiCallWithDetails($apiKey, $prompt, $brand, $keyRecord);
+        return $result['success'] ? $result['text'] : null;
     }
 }
