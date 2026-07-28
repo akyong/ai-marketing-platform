@@ -30,18 +30,29 @@
 
 ## Phase 2 — Platform (Workspace) Checklist
 
-- [ ] **1. PRD & Database Schema untuk Workspace**
-  - [ ] Menyusun struktur tabel `workspaces` (id, name, slug, owner_id)
-  - [ ] Menyusun relasi `workspace_user` (pivot table roles & permissions)
-  - [ ] Menyusun skema `brands` terikat pada Workspace (kasus pertama: Waperu)
+- [x] **1. PRD & Database Schema untuk Workspace**
+  - [x] Menyusun struktur tabel `workspaces` (id, name, slug, owner_id)
+  - [x] Menyusun relasi `workspace_user` (pivot table roles & permissions)
+  - [x] Menyusun skema `brands` terikat pada Workspace (first client: Waperu.com)
 
-- [ ] **2. Backend Workspace (Laravel)**
-  - [ ] Migration `create_workspaces_table` & `create_workspace_user_table`
-  - [ ] Model Eloquent `Workspace`, `Brand`, relasi `User->workspaces()`
-  - [ ] Middleware `EnsureHasWorkspace` / `SetCurrentWorkspace`
-  - [ ] Controller CRUD Workspace (`WorkspaceController`)
+- [x] **2. Backend Workspace (Laravel)**
+  - [x] Migration `create_workspaces_table` & `create_workspace_user_table`
+  - [x] Model Eloquent `Workspace`, `Brand`, relasi `User->workspaces()`
+  - [x] Shared data Inertia `HandleInertiaRequests` untuk Workspace aktif
+  - [x] Controller CRUD Workspace & Brand (`WorkspaceController`, `BrandController`)
 
-- [ ] **3. UI Frontend Workspace (Vue 3 + Inertia)**
-  - [ ] Dropdown Switcher Workspace di Navbar / Sidebar
-  - [ ] Halaman "Create Workspace" Modal / Page
-  - [ ] Halaman "Workspace Settings" & Brand Profile (contoh: Waperu Seafood)
+- [x] **3. UI Frontend Workspace (Vue 3 + Inertia)**
+  - [x] Dropdown Switcher Workspace di Navbar ([WorkspaceSwitcher.vue](file:///Users/bobbyakyong/programming/php/laravel/ai-marketing-platform/resources/js/Components/WorkspaceSwitcher.vue))
+  - [x] Form "Create Workspace" di UI
+  - [x] Halaman "Workspace & Brand Settings" ([Settings.vue](file:///Users/bobbyakyong/programming/php/laravel/ai-marketing-platform/resources/js/Pages/Workspace/Settings.vue))
+
+---
+
+## Phase 3 — AI Integration (Next Phase)
+
+- [ ] **1. Telegram Integration Setup**
+  - [ ] Telegram Bot webhook handler & command routing
+- [ ] **2. OpenClaw Setup (AI Brain)**
+  - [ ] OpenClaw reasoning & agent coordinator setup
+- [ ] **3. Gemini AI Provider**
+  - [ ] Gemini API key integration for prompt execution & target research
