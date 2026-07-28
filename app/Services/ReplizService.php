@@ -59,8 +59,10 @@ class ReplizService
             $rawJson = $accountResponse->json();
             Log::info('Repliz GET /public/account Raw Response', ['raw' => $rawJson]);
 
-            // Parse accounts array flexibly
-            if (isset($rawJson['data']) && is_array($rawJson['data'])) {
+            // Parse accounts array flexibly (Repliz uses Mongoose 'docs' pagination array)
+            if (isset($rawJson['docs']) && is_array($rawJson['docs'])) {
+                $accountsData = $rawJson['docs'];
+            } elseif (isset($rawJson['data']) && is_array($rawJson['data'])) {
                 $accountsData = $rawJson['data'];
             } elseif (isset($rawJson['accounts']) && is_array($rawJson['accounts'])) {
                 $accountsData = $rawJson['accounts'];
