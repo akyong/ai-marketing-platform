@@ -262,4 +262,37 @@ class ReplizService
 
         return trim($text);
     }
+
+    /**
+     * Research & Social Listening: Search Threads for posts matching keywords (Gold+ Repliz API feature)
+     */
+    public function searchThreadsContent(string $query): array
+    {
+        if (empty($this->apiKey)) {
+            return [];
+        }
+
+        try {
+            if (str_contains($this->apiKey, ':')) {
+                [$accessKey, $secretKey] = explode(':', $this->apiKey, 2);
+                $httpClient = Http::withBasicAuth(trim($accessKey), trim($secretKey));
+            } else {
+                $httpClient = Http::withToken($this->apiKey);
+            }
+
+            $response = $httpClient->get('https://api.repliz.com/public/research/threads/content/search', [
+                'query' => $query,
+                'limit' => 5,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['docs'] ?? $data['data'] ?? $data['items'] ?? [];
+            }
+        } catch (\Exception $e) {
+            Log::warning("Repliz Threads Research Error: " . $e->getMessage());
+        }
+
+        return [];
+    }
 }
