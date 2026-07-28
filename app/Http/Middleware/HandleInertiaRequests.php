@@ -40,25 +40,30 @@ class HandleInertiaRequests extends Middleware
 
             // Auto-provision default Waperu Workspace if user has no workspace
             if ($workspaces->isEmpty()) {
-                $workspace = Workspace::create([
-                    'owner_id' => $user->id,
-                    'name' => 'Waperu Workspace',
-                    'slug' => 'waperu-' . substr(md5(uniqid()), 0, 4),
-                ]);
+                $workspace = Workspace::first();
+                if (! $workspace) {
+                    $workspace = Workspace::create([
+                        'owner_id' => $user->id,
+                        'name' => 'Waperu Workspace',
+                        'slug' => 'waperu-' . substr(md5(uniqid()), 0, 4),
+                    ]);
 
-                $workspace->users()->attach($user->id, ['role' => 'owner']);
+                    Brand::create([
+                        'workspace_id' => $workspace->id,
+                        'name' => 'Waperu',
+                        'website_url' => 'https://waperu.com',
+                        'description' => 'Platform toko online mandiri 0% komisi untuk seller COD dan UMKM Indonesia.',
+                        'industry' => 'E-Commerce Platform / SaaS',
+                        'target_audience' => 'Online Sellers, Pejuang COD, UMKM, Retail Merchants',
+                        'tone_of_voice' => 'Professional, Empathetic, Empowering, Direct',
+                    ]);
+                }
+
+                if (! $user->workspaces()->where('workspace_id', $workspace->id)->exists()) {
+                    $workspace->users()->attach($user->id, ['role' => 'owner']);
+                }
+
                 $user->update(['current_workspace_id' => $workspace->id]);
-
-                Brand::create([
-                    'workspace_id' => $workspace->id,
-                    'name' => 'Waperu',
-                    'website_url' => 'https://waperu.com',
-                    'description' => 'Platform toko online mandiri 0% komisi untuk seller COD dan UMKM Indonesia.',
-                    'industry' => 'E-Commerce Platform / SaaS',
-                    'target_audience' => 'Online Sellers, Pejuang COD, UMKM, Retail Merchants',
-                    'tone_of_voice' => 'Professional, Empathetic, Empowering, Direct',
-                ]);
-
                 $workspaces = $user->workspaces()->get();
             }
 

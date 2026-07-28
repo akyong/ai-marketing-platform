@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Str;
 
 // Run Autonomous AI Marketing Job every morning at 07:00 AM
 Schedule::command('ai:daily-marketing')->dailyAt('07:00');
@@ -13,13 +14,15 @@ Schedule::command('posts:publish-scheduled')->everyFiveMinutes();
 
 // Fix & Attach All Existing Users to Waperu Workspace Command
 Artisan::command('workspace:fix-all', function () {
-    $workspace = Workspace::firstOrCreate(
-        ['slug' => 'waperu'],
-        [
-            'owner_id' => 1,
+    $workspace = Workspace::first();
+    if (! $workspace) {
+        $firstUser = User::first();
+        $workspace = Workspace::create([
+            'owner_id' => $firstUser ? $firstUser->id : 1,
             'name' => 'Waperu Workspace',
-        ]
-    );
+            'slug' => 'waperu',
+        ]);
+    }
 
     foreach (Workspace::all() as $ws) {
         if (empty($ws->widget_key)) {
@@ -34,7 +37,9 @@ Artisan::command('workspace:fix-all', function () {
         if (! $user->workspaces()->where('workspace_id', $workspace->id)->exists()) {
             $user->workspaces()->attach($workspace->id, ['role' => 'owner']);
         }
-        $user->update(['current_workspace_id' => $workspace->id]);
+        if (! $user->current_workspace_id) {
+            $user->update(['current_workspace_id' => $workspace->id]);
+        }
     }
 
     $this->info("✅ Berhasil menghubungkan {$users->count()} akun user & memperbarui Widget Key!");
