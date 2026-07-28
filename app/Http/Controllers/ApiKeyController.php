@@ -36,7 +36,7 @@ class ApiKeyController extends Controller
         $user = $request->user();
         $workspace = $user->currentWorkspace;
 
-        ApiKey::create([
+        $apiKey = ApiKey::create([
             'workspace_id' => $workspace?->id,
             'provider' => $validated['provider'],
             'key_name' => $validated['key_name'],
@@ -44,7 +44,12 @@ class ApiKeyController extends Controller
             'is_active' => true,
         ]);
 
-        return redirect()->back()->with('success', 'API Key berhasil ditambahkan ke Key Pool!');
+        if ($validated['provider'] === 'telegram') {
+            $telegram = new \App\Services\TelegramService($validated['api_key']);
+            $telegram->setWebhook(config('app.url', 'https://gotiau.com') . '/api/telegram/webhook');
+        }
+
+        return redirect()->back()->with('success', 'API Key berhasil ditambahkan ke Key Pool & Webhook terhubung!');
     }
 
     public function toggle(ApiKey $apiKey): RedirectResponse

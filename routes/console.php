@@ -44,3 +44,16 @@ Artisan::command('workspace:fix-all', function () {
 
     $this->info("✅ Berhasil menghubungkan {$users->count()} akun user & memperbarui Widget Key!");
 })->purpose('Menghubungkan seluruh akun user ke Waperu Workspace');
+
+// Register Telegram Bot Webhook Command
+Artisan::command('telegram:set-webhook {token?}', function (?string $token = null) {
+    $telegram = new \App\Services\TelegramService($token);
+    $webhookUrl = config('app.url', 'https://gotiau.com') . '/api/telegram/webhook';
+    $result = $telegram->setWebhook($webhookUrl);
+
+    if (! empty($result['ok'])) {
+        $this->info("✅ Telegram Webhook Berhasil Terpasang! URL: {$webhookUrl}");
+    } else {
+        $this->error("❌ Gagal Memasang Webhook: " . ($result['description'] ?? 'Error Tidak Diketahui'));
+    }
+})->purpose('Memasang Webhook Telegram Bot ke Server Gotiau AI');
