@@ -137,12 +137,10 @@ class GeminiService
 
         $fullPrompt = $contextPrefix . $prompt;
         $modelsToTry = [
-            'gemini-2.5-flash',
-            'gemini-2.5-pro',
             'gemini-3.1-flash-lite',
             'gemini-2.0-flash',
-            'gemini-1.5-pro',
             'gemini-1.5-flash',
+            'gemini-1.5-pro',
         ];
 
         foreach ($modelsToTry as $modelName) {
@@ -182,12 +180,12 @@ class GeminiService
                     return ['success' => false, 'text' => null, 'error' => "Rate Limit Hit (429)"];
                 }
 
-                Log::error("Gemini Model {$modelName} Error", ['status' => $status, 'body' => $body]);
-
-                // Try next model if 404 or 400
+                // Try next model silently if 404 or 400
                 if (in_array($status, [404, 400])) {
                     continue;
                 }
+
+                Log::error("Gemini Model {$modelName} Error", ['status' => $status, 'body' => $body]);
 
                 $jsonError = $response->json('error.message') ?? $body;
                 return ['success' => false, 'text' => null, 'error' => "Status {$status}: {$jsonError}"];
