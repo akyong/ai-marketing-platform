@@ -17,10 +17,18 @@ const aiForm = useForm({
     prompt: '',
 });
 
+const autonomousForm = useForm({
+    goal: 'Buat strategi marketing harian untuk menarik seller online ke Waperu',
+});
+
 const generateAiStrategy = () => {
     aiForm.post(route('ai.generate'), {
         onSuccess: () => aiForm.reset('prompt'),
     });
+};
+
+const runAutonomousWorkflow = () => {
+    autonomousForm.post(route('ai.autonomous'));
 };
 </script>
 
@@ -58,6 +66,17 @@ const generateAiStrategy = () => {
                                     🗣️ Tone: {{ brand.tone_of_voice || 'Belum diisi' }}
                                 </span>
                             </div>
+                        </div>
+
+                        <!-- Quick Autonomous Trigger -->
+                        <div>
+                            <button
+                                @click="runAutonomousWorkflow"
+                                :disabled="autonomousForm.processing"
+                                class="rounded-lg bg-white px-4 py-3 text-sm font-bold text-indigo-700 shadow transition hover:bg-indigo-50 disabled:opacity-50"
+                            >
+                                {{ autonomousForm.processing ? '⚡ AI Meriset & Menyusun Campaign...' : '⚡ Jalankan 3-Step Autonomous Campaign' }}
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Controllers\WorkspaceController;
 use App\Models\AiGeneration;
+use App\Services\AiAgentCoordinator;
 use App\Services\GeminiService;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/api-keys/{apiKey}/toggle', [ApiKeyController::class, 'toggle'])->name('api-keys.toggle');
     Route::delete('/api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
 
-    // AI Generation Test Route
+    // AI Generation Routes
     Route::post('/ai/generate', function (Request $request, GeminiService $gemini) {
         $request->validate(['prompt' => 'required|string']);
         $user = $request->user();
@@ -67,6 +68,17 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->back()->with('success', 'AI Marketing Strategy Berhasil Dihasilkan!');
     })->name('ai.generate');
+
+    // Autonomous Campaign Workflow Route
+    Route::post('/ai/autonomous-campaign', function (Request $request, AiAgentCoordinator $coordinator) {
+        $user = $request->user();
+        $workspace = $user->currentWorkspace()->with('defaultBrand')->firstOrFail();
+        $goal = $request->input('goal', 'Buat strategi marketing harian untuk menarik seller online ke Waperu');
+
+        $coordinator->runAutonomousCampaign($workspace, $goal);
+
+        return redirect()->back()->with('success', 'Autonomous Campaign AI Berhasil Dijalankan!');
+    })->name('ai.autonomous');
 });
 
 // Telegram Webhook
