@@ -4,7 +4,7 @@
 
 AI Marketing Platform (AMP) adalah platform SaaS multi-workspace untuk mengelola dan memuatkan otomatisasi tim marketing berbasis AI.
 
-**First Client**: `waperu.com` (Seafood E-Commerce / Business)
+**First Client**: `waperu.com` (**Wadah Pejuang Rupiah** — Platform Toko Online Mandiri 0% Komisi untuk Seller COD & UMKM)
 
 ---
 

@@ -2,57 +2,62 @@
 
 ## Overview
 
-**AI Marketing Platform (AMP)** adalah *AI Marketing Operating System* yang dirancang untuk menjalankan dan mengotomatisasi seluruh aktivitas digital marketing bisnis secara cerdas dan autonomous.
+**AI Marketing Platform (AMP)** adalah *AI Marketing Operating System* yang bertindak sebagai **Autonomous AI Marketer (Tim Marketing AI Mandiri)**.
 
-Bukan sekadar *caption generator* atau *social media scheduler*, sistem ini bertindak seperti **AI Marketing Team 24/7** yang mampu membaca tren, menganalisis stok/data produk, membuat strategi konten, dan mempublikasikannya secara otomatis.
+Sistem ini bukan sekadar pembuat caption atau penjadwal postingan biasa. Otak AI (**OpenClaw + Gemini**) dirancang untuk **secara mandiri mencari tahu strategi terbaik, menentukan target audiens, dan membuat kampanye pemasaran yang paling efektif** di seluruh media sosial.
 
-Pelanggan pertama (first client) platform ini adalah **waperu.com** (toko/bisnis seafood digital).
+Pelanggan pertama (*first client*) platform ini adalah **waperu.com** (**Wadah Pejuang Rupiah** — Platform Toko Online Mandiri 0% Komisi untuk Seller COD & UMKM).
 
 ---
 
-## High-Level Vision Diagram
+## Autonomous Marketing Workflow
 
 ```
-                 Telegram
-                     │
-                     ▼
-              OpenClaw (Brain)
-                     │
-     ┌───────────────┼────────────────┐
-     │               │                │
- Content Planner  Analytics      Knowledge Base
-     │               │                │
-     └───────────────┼────────────────┘
-                     │
-               Decision Engine
-                     │
-      ┌──────────────┼──────────────┐
-      ▼              ▼              ▼
-   Repliz         Laravel       Cloudinary
+                 Telegram Interface
+                         │
+                         ▼
+              OpenClaw (AI Brain)
+                         │
+     ┌───────────────────┼───────────────────┐
+     │                   │                   │
+  Audience &         Content          Knowledge Base
+  Market Research    Planner          (Product/Waperu)
+     │                   │                   │
+     └───────────────────┼───────────────────┘
+                         │
+                   Decision Engine
+                         │
+      ┌──────────────────┼──────────────────┐
+      ▼                  ▼                  ▼
+   Repliz             Laravel           Cloudinary
+(Social Engine)    (Control Plane)    (Media Storage)
       │
       ▼
- Instagram • Facebook • TikTok • X
+ Social Channels (Instagram • Facebook • TikTok • X)
 ```
 
 ---
 
-## Example Use Case: Autonomous Daily Marketing (Waperu.com)
+## Cara Kerja Autonomous AI Marketer (Kasus Waperu.com)
 
-Setiap pagi jam 07:00:
-1. **AI Analisis**:
-   - **Trend Seafood**: *Frozen squid* sedang naik, *Tuna* sedang ramai.
-   - **Data Stok Waperu**: Stok terbanyak saat ini *Tuna* & *Cumi*.
-2. **AI Planning**:
-   - 09:00 — Edukasi: *Tips memilih tuna segar.*
-   - 15:00 — Promo: *Promo spesial cumi segar.*
-   - 20:00 — Engagement: *Behind the scene packing produk Waperu.*
-3. **Execution**:
-   - Konten dibuat, dikirimkan ke Telegram untuk approval/review (atau auto-publish), lalu diposting melalui Repliz ke Instagram, Facebook, TikTok, & X.
+1. **Riset Target Audiens Mandiri (Autonomous Audience Discovery)**:
+   - AI secara mandiri menganalisis kebutuhan seller online, isu potongan komisi marketplace yang tinggi, dan kendala pengiriman COD.
+   - AI mengidentifikasi target pasar spesifik (contoh: seller TikTok Shop/Shopee, pejuang COD Facebook, UMKM lokal).
+
+2. **Perancangan Strategi Konten Harian**:
+   - AI menentukan sudut pandang (*angle*) komunikasi yang paling relevan untuk menarik seller bergabung ke `waperu.com`.
+   - AI menyusun jenis konten bervariasi (Edukasi, Solusi Masalah, Feature Highlight, Testimonial, Call-to-Action).
+
+3. **Eksekusi & Publikasi Multi-Channel**:
+   - Konten diproduksi dan dipublikasikan otomatis melalui **Repliz** ke Instagram, Facebook, TikTok, dan X.
+
+4. **Pembelajaran & Optimalisasi Berkelanjutan (Feedback Loop)**:
+   - AI membaca performa (reach, engagement, conversion) dan secara otomatis menyesuaikan strategi pemasaran berikutnya agar makin efektif.
 
 ---
 
 ## Core Philosophy
 
-- **AI is an Operator, not just a Chatbot**: AI bekerja dalam workflow terstruktur.
-- **Documentation & Foundation First**: Membangun fondasi yang kuat sebelum menambah layer AI.
-- **Workspace-centric**: Setiap aset marketing, brand, dan akun terorganisir di dalam Workspace.
+- **Autonomous Operator**: AI tidak hanya menunggu perintah (*prompt*), tetapi aktif mencari cara memajukan marketing produk/brand.
+- **Workspace-Centric**: Setiap strategi, aset, knowledge base, dan akun sosial tersusun di dalam Workspace.
+- **Foundation First**: Membangun fondasi sistem yang stabil (Phase 1) sebelum memasang lapisan cerdas AI (Phase 3).
