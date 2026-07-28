@@ -19,36 +19,81 @@ class AiAgentCoordinator
     }
 
     /**
-     * Run Autonomous Marketing Workflow for Waperu / Workspace
+     * Run Autonomous Self-Learning Marketing Workflow for Waperu / Workspace
      */
     public function runAutonomousCampaign(Workspace $workspace, string $goal = 'Buat strategi marketing harian untuk menarik seller online ke Waperu'): array
     {
         $brand = $workspace->brands->first();
         $brandName = $brand->name ?? 'Waperu';
 
-        // Step 1: Audience & Pain Point Research Agent
-        $researchPrompt = "Analisis 3 masalah utama seller online di Indonesia (komisi tinggi, retur COD) dan solusi unggulan {$brandName}. Berikan poin ringkas.";
-        $researchResult = $this->gemini->generate($researchPrompt, $brand);
+        // 🧠 Step 1: Memory Recall — Read recent post history to prevent repetition & evolve strategy
+        $pastPostsSummary = Post::where('workspace_id', $workspace->id)
+            ->latest()
+            ->take(6)
+            ->pluck('title')
+            ->map(fn($title) => "- " . mb_substr($title, 0, 70))
+            ->implode("\n");
 
-        // Step 2: Generate 3 Distinct Platform-Tailored Posts
-        $prompt1 = "Buatkan 1 caption TikTok & Instagram Reels yang santai (Hook seru + Solusi) untuk ajak seller jualan 0% komisi di {$brandName}. Tanpa markdown tebal **, tanpa kata pengantar AI.";
+        $memoryContext = ! empty($pastPostsSummary)
+            ? "RIWAYAT POSTINGAN SEBELUMNYA (DILARANG Ulangi Angle/Hook Yang Sama):\n{$pastPostsSummary}\n\n"
+            : "Ini adalah postingan awal kampanye. Buatkan konsep paling segar dan menarik.\n\n";
+
+        // 🎯 Step 2: Content Pillar Rotation (Select 3 distinct pillars per run)
+        $allPillars = [
+            "Pilar 1: Pain Point Komisi Marketplace (Simulasi perbandingan rugi komisi vs untung utuh 0% Waperu)",
+            "Pilar 2: Edukasi Praktis (Cara buat toko online mandiri + QRIS dalam 60 detik)",
+            "Pilar 3: Storytelling Pejuang Rupiah (Perjuangan seller membangun brand sendiri tanpa takut blokir)",
+            "Pilar 4: Fitur Highlight COD (Kelancaran cashflow & kemudahan kirim paket COD tanpa pusing)",
+            "Pilar 5: Kedaulatan Bisnis (Miliki database pelanggan sendiri, bukan sekadar numpang jualan)",
+            "Pilar 6: CTA & FOMO (Momentum terbaik ubah toko online Anda sekarang juga)",
+        ];
+
+        // Shuffle & pick 3 pillars for today's 3 posts
+        shuffle($allPillars);
+        $selectedPillars = array_slice($allPillars, 0, 3);
+
+        Log::info("Autonomous AI Learning Campaign Started", [
+            'workspace' => $workspace->name,
+            'selected_pillars' => $selectedPillars,
+        ]);
+
+        // 📝 Step 3: Generate 3 Platform-Optimized Posts with High-Level Copywriting
+        // Post 1: TikTok & IG Reels Video Script/Caption (09:00 WIB)
+        $prompt1 = $memoryContext .
+            "TUGAS KONTEN 1 (TikTok & IG Reels):\n" .
+            "Sudut Pandang / Pilar: {$selectedPillars[0]}\n" .
+            "Buatkan 1 caption TikTok & Reels yang santai, komunikatif, dan punya Hook kuat di kalimat pertama. " .
+            "Gunakan emoji menarik (🚀, 💸, ✅). Tanpa markdown tebal **, tanpa kata pengantar AI.";
+
         $post1Content = $this->gemini->generate($prompt1, $brand);
 
-        $prompt2 = "Buatkan 1 caption Instagram Feed & Facebook yang edukatif dan solutif tentang fitur Waperu (0% Komisi & COD lancar). Tanpa markdown tebal **, tanpa kata pengantar AI.";
+        // Post 2: Instagram Feed & Facebook Edukasi Poster (15:00 WIB)
+        $prompt2 = $memoryContext .
+            "TUGAS KONTEN 2 (Instagram Feed & Facebook):\n" .
+            "Sudut Pandang / Pilar: {$selectedPillars[1]}\n" .
+            "Buatkan 1 caption Instagram Feed & Facebook yang edukatif, profesional, dan menjelaskan keunggulan 0% komisi {$brandName} dengan bullet points emoji. " .
+            "Sertakan CTA ke {$brand->website_url}. Tanpa markdown tebal **, tanpa kata pengantar AI.";
+
         $post2Content = $this->gemini->generate($prompt2, $brand);
 
-        $prompt3 = "Buatkan 1 teks storytelling relatable untuk Threads tentang capeknya seller dipotong komisi marketplace dan pentingnya punya toko mandiri di {$brandName}. Tanpa markdown tebal **.";
+        // Post 3: Threads Storytelling Thread (20:00 WIB)
+        $prompt3 = $memoryContext .
+            "TUGAS KONTEN 3 (Threads Storytelling):\n" .
+            "Sudut Pandang / Pilar: {$selectedPillars[2]}\n" .
+            "Buatkan 1 cerita emosional & relatable (storytelling) untuk Threads tentang perjuangan seller online. " .
+            "Gunakan gaya penulisan mengalir dan menyentuh. Tanpa markdown tebal **.";
+
         $post3Content = $this->gemini->generate($prompt3, $brand);
 
-        // Fetch existing media assets from library or fallback to banner
+        // 🎨 Fetch banner media URL
         $bannerUrl = config('app.url', 'https://gotiau.com') . '/waperu-banner.png';
         $today = now()->format('Y-m-d');
 
-        // Create TikTok & Reels Video Post (09:00)
-        Post::create([
+        // 🚀 Create TikTok & Reels Post (09:00 WIB)
+        $post1 = Post::create([
             'workspace_id' => $workspace->id,
             'brand_id' => $brand?->id,
-            'title' => "📹 Post TikTok & IG Reels (09:00) — Edukasi Seller COD {$brandName}",
+            'title' => "📹 TikTok & Reels — " . mb_substr($selectedPillars[0], 0, 60),
             'content' => $post1Content,
             'platforms' => ['tiktok', 'instagram'],
             'status' => 'scheduled',
@@ -56,11 +101,11 @@ class AiAgentCoordinator
             'media_urls' => [$bannerUrl],
         ]);
 
-        // Create IG Feed & Facebook Photo Poster Post (15:00)
-        Post::create([
+        // 🚀 Create IG Feed & Facebook Post (15:00 WIB)
+        $post2 = Post::create([
             'workspace_id' => $workspace->id,
             'brand_id' => $brand?->id,
-            'title' => "📸 Post IG Feed & Facebook (15:00) — Fitur Highlight {$brandName}",
+            'title' => "📸 IG Feed & Facebook — " . mb_substr($selectedPillars[1], 0, 60),
             'content' => $post2Content,
             'platforms' => ['instagram', 'facebook'],
             'status' => 'scheduled',
@@ -68,11 +113,11 @@ class AiAgentCoordinator
             'media_urls' => [$bannerUrl],
         ]);
 
-        // Create Threads Text Thread Post (20:00)
-        Post::create([
+        // 🚀 Create Threads Thread Post (20:00 WIB)
+        $post3 = Post::create([
             'workspace_id' => $workspace->id,
             'brand_id' => $brand?->id,
-            'title' => "🧵 Post Threads (20:00) — Storytelling Seller Waperu",
+            'title' => "🧵 Threads — " . mb_substr($selectedPillars[2], 0, 60),
             'content' => $post3Content,
             'platforms' => ['threads'],
             'status' => 'scheduled',
@@ -80,24 +125,24 @@ class AiAgentCoordinator
             'media_urls' => [],
         ]);
 
-        // Save execution log
+        // 📊 Save Self-Learning Execution Memory Log
         $record = AiGeneration::create([
             'workspace_id' => $workspace->id,
             'type' => 'autonomous_workflow',
             'prompt' => $goal,
-            'response_text' => "--- KONTEN TIKTOK/REELS ---\n\n{$post1Content}\n\n--- KONTEN IG/FB ---\n\n{$post2Content}\n\n--- KONTEN THREADS ---\n\n{$post3Content}",
+            'response_text' => "--- POST 1 (TikTok/Reels) ---\n\n{$post1Content}\n\n--- POST 2 (IG/FB) ---\n\n{$post2Content}\n\n--- POST 3 (Threads) ---\n\n{$post3Content}",
             'status' => 'completed',
             'metadata' => [
-                'step_1_research' => $researchResult,
-                'post_1' => $post1Content,
-                'post_2' => $post2Content,
-                'post_3' => $post3Content,
+                'memory_recalled_posts' => $pastPostsSummary,
+                'selected_pillars' => $selectedPillars,
+                'post_ids' => [$post1->id, $post2->id, $post3->id],
+                'learning_version' => '2.0_dynamic_pillars',
             ],
         ]);
 
         return [
             'generation_id' => $record->id,
-            'research' => $researchResult,
+            'pillars_used' => $selectedPillars,
             'copywriting' => "1. TikTok/Reels:\n{$post1Content}\n\n2. IG/FB:\n{$post2Content}\n\n3. Threads:\n{$post3Content}",
         ];
     }
