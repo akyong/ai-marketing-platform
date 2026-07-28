@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     mbstring \
     zip
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+ENV TZ=Asia/Jakarta
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /var/www/html
