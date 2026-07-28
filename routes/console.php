@@ -9,8 +9,8 @@ use Illuminate\Support\Str;
 // Run Autonomous AI Marketing Job every morning at 07:00 AM
 Schedule::command('ai:daily-marketing')->dailyAt('07:00');
 
-// Auto-publish scheduled social media posts every 5 minutes via Repliz
-Schedule::command('posts:publish-scheduled')->everyFiveMinutes();
+// Auto-publish scheduled social media posts every minute via Repliz
+Schedule::command('posts:publish-scheduled')->everyMinute();
 
 // Fix & Attach All Existing Users to Waperu Workspace Command
 Artisan::command('workspace:fix-all', function () {
