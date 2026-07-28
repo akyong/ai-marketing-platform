@@ -100,19 +100,23 @@ class GeminiService
         }
 
         $fullPrompt = $contextPrefix . $prompt;
-        $modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro'];
+        $modelsToTry = ['gemini-3.1-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
 
         foreach ($modelsToTry as $modelName) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key={$apiKey}";
 
             try {
-                $response = Http::post($url, [
+                $response = Http::timeout(20)->post($url, [
                     'contents' => [
                         [
+                            'role' => 'user',
                             'parts' => [
                                 ['text' => $fullPrompt]
                             ]
                         ]
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.7,
                     ]
                 ]);
 
@@ -135,8 +139,8 @@ class GeminiService
 
                 Log::error("Gemini Model {$modelName} Error", ['status' => $status, 'body' => $body]);
 
-                // Try next model if 404
-                if ($status === 404) {
+                // Try next model if 404 or 400
+                if (in_array($status, [404, 400])) {
                     continue;
                 }
 
