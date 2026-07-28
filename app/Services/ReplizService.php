@@ -114,10 +114,32 @@ class ReplizService
                     ];
                 }
 
-                // Threads API enforces max 500 characters for text/caption
+                $repliesPayload = [];
                 $description = $post->content;
-                if ($platformType === 'threads' && mb_strlen($description) > 480) {
-                    $description = mb_substr($description, 0, 475) . '...';
+
+                // Handle platform-specific character limits & Threads nested thread splitting
+                if ($platformType === 'threads') {
+                    $chunks = $this->splitTextIntoChunks($post->content, 480);
+                    $description = $chunks[0] ?? $post->content;
+
+                    if (count($chunks) > 1) {
+                        for ($i = 1; $i < count($chunks); $i++) {
+                            $repliesPayload[] = [
+                                'title' => '',
+                                'description' => $chunks[$i],
+                                'topic' => 'AI Marketing Thread',
+                                'type' => 'text',
+                                'medias' => [],
+                                'status' => 'pending',
+                            ];
+                        }
+                    }
+                } elseif (in_array($platformType, ['instagram', 'tiktok', 'facebook', 'linkedin'])) {
+                    // Instagram & TikTok max 2200 characters limit
+                    if (mb_strlen($description) > 2180) {
+                        $chunks = $this->splitTextIntoChunks($description, 2180);
+                        $description = $chunks[0];
+                    }
                 }
 
                 $scheduleTime = $post->scheduled_at ? $post->scheduled_at->toISOString() : now()->addMinutes(2)->toISOString();
@@ -128,6 +150,7 @@ class ReplizService
                     'topic' => 'AI Marketing',
                     'type' => $postType,
                     'medias' => $mediasPayload,
+                    'replies' => $repliesPayload,
                     'accountId' => $accountId,
                     'scheduleAt' => $scheduleTime,
                 ];
@@ -173,5 +196,34 @@ class ReplizService
             ]);
             return false;
         }
+    }
+
+    /**
+     * Smart text splitter by word boundaries without cutting words in half
+     */
+    protected function splitTextIntoChunks(string $text, int $maxChars = 480): array
+    {
+        $words = preg_split('/\s+/', $text);
+        $chunks = [];
+        $currentChunk = '';
+
+        foreach ($words as $word) {
+            if (empty($word)) continue;
+
+            if (mb_strlen($currentChunk . ' ' . $word) > $maxChars) {
+                if (! empty($currentChunk)) {
+                    $chunks[] = trim($currentChunk);
+                }
+                $currentChunk = $word;
+            } else {
+                $currentChunk = empty($currentChunk) ? $word : $currentChunk . ' ' . $word;
+            }
+        }
+
+        if (! empty($currentChunk)) {
+            $chunks[] = trim($currentChunk);
+        }
+
+        return $chunks;
     }
 }
