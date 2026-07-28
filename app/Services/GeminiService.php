@@ -100,7 +100,7 @@ class GeminiService
         }
 
         $fullPrompt = $contextPrefix . $prompt;
-        $modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+        $modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro'];
 
         foreach ($modelsToTry as $modelName) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key={$apiKey}";
