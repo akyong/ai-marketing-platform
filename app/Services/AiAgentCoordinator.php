@@ -26,6 +26,14 @@ class AiAgentCoordinator
         $brand = $workspace->brands->first();
         $brandName = $brand->name ?? 'Waperu';
 
+        // 🧠 Step 0: Recall Past Post Memory to avoid repeating angles
+        $pastPostsSummary = Post::where('workspace_id', $workspace->id)
+            ->latest()
+            ->take(6)
+            ->pluck('title')
+            ->map(fn($title) => "• " . $title)
+            ->implode("\n");
+
         // 🔍 Step 0: Real-Time Threads Social Listening (Repliz Gold+ API Research across Target Keywords)
         $threadsService = app(ReplizService::class);
         $targetKeywords = ['ecommerce', 'jualanonline', 'marketplace', 'komisi marketplace', 'potongan admin'];
