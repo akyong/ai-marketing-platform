@@ -87,7 +87,7 @@ class TelegramWebhookController extends Controller
                 case '/publishnow':
                     $telegram->sendMessage($chatId, "🚀 <i>AI Marketer sedang membuat materi postingan & mempublikasikan INSTAN ke Repliz...</i>");
 
-                    $aiPrompt = "Buatkan 1 konten promosi menarik untuk {$brandName} yang siap diterbitkan hari ini di Instagram, TikTok, Facebook, dan X.";
+                    $aiPrompt = "Buatkan 1 konten promosi menarik untuk {$brandName} yang siap diterbitkan hari ini di Instagram, Threads, TikTok, dan Facebook.";
                     $content = $gemini->generate($aiPrompt, $brand);
 
                     $post = Post::create([
@@ -95,7 +95,7 @@ class TelegramWebhookController extends Controller
                         'brand_id' => $brand?->id,
                         'title' => "Promosi Instant {$brandName} - " . now()->format('Y-m-d H:i'),
                         'content' => $content,
-                        'platforms' => ['instagram', 'facebook', 'tiktok', 'twitter'],
+                        'platforms' => ['instagram', 'facebook', 'threads', 'tiktok'],
                         'status' => 'draft',
                     ]);
 

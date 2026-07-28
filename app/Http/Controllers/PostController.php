@@ -46,7 +46,7 @@ class PostController extends Controller
             'brand_id' => $brand?->id,
             'title' => $validated['title'],
             'content' => $validated['content'],
-            'platforms' => $validated['platforms'] ?? ['instagram', 'facebook', 'tiktok', 'twitter'],
+            'platforms' => $validated['platforms'] ?? ['instagram', 'facebook', 'threads', 'tiktok'],
             'status' => $status,
             'scheduled_at' => $validated['scheduled_at'] ?? null,
         ]);
@@ -76,7 +76,7 @@ class PostController extends Controller
         $workspace = $user->currentWorkspace;
         $brand = $workspace?->brands->first();
 
-        $aiPrompt = "Buatkan 1 konten promosi menarik untuk " . ($brand?->name ?? 'Waperu') . " yang siap diterbitkan hari ini di Instagram, TikTok, Facebook, dan X.";
+        $aiPrompt = "Buatkan 1 konten promosi menarik untuk " . ($brand?->name ?? 'Waperu') . " yang siap diterbitkan hari ini di Instagram, Threads, TikTok, dan Facebook.";
         $content = $gemini->generate($aiPrompt, $brand);
 
         $post = Post::create([
@@ -84,7 +84,7 @@ class PostController extends Controller
             'brand_id' => $brand?->id,
             'title' => "Promosi Instant Test - " . now()->format('Y-m-d H:i'),
             'content' => $content,
-            'platforms' => ['instagram', 'facebook', 'tiktok', 'twitter'],
+            'platforms' => ['instagram', 'facebook', 'threads', 'tiktok'],
             'status' => 'draft',
         ]);
 

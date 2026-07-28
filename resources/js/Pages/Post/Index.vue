@@ -28,7 +28,7 @@ const testInstantPost = () => {
 const postForm = useForm({
     title: '',
     content: '',
-    platforms: ['instagram', 'facebook', 'tiktok', 'twitter'],
+    platforms: ['instagram', 'facebook', 'threads', 'tiktok'],
     scheduled_at: '',
 });
 
@@ -145,12 +145,20 @@ const deletePost = (postId) => {
                                         <span>📘 Facebook</span>
                                     </label>
                                     <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="checkbox" value="threads" v-model="postForm.platforms" class="rounded border-gray-300 text-indigo-600 shadow-sm" />
+                                        <span>🧵 Threads</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
                                         <input type="checkbox" value="tiktok" v-model="postForm.platforms" class="rounded border-gray-300 text-indigo-600 shadow-sm" />
                                         <span>🎵 TikTok</span>
                                     </label>
                                     <label class="flex items-center gap-1.5 cursor-pointer">
-                                        <input type="checkbox" value="twitter" v-model="postForm.platforms" class="rounded border-gray-300 text-indigo-600 shadow-sm" />
-                                        <span>🐦 X (Twitter)</span>
+                                        <input type="checkbox" value="linkedin" v-model="postForm.platforms" class="rounded border-gray-300 text-indigo-600 shadow-sm" />
+                                        <span>💼 LinkedIn</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="checkbox" value="youtube" v-model="postForm.platforms" class="rounded border-gray-300 text-indigo-600 shadow-sm" />
+                                        <span>🔴 YouTube</span>
                                     </label>
                                 </div>
                             </div>
