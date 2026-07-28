@@ -26,19 +26,22 @@ class AiAgentCoordinator
         $brand = $workspace->brands->first();
         $brandName = $brand->name ?? 'Waperu';
 
-        // 🔍 Step 0: Real-Time Threads Social Listening (Repliz Gold+ API Research)
+        // 🔍 Step 0: Real-Time Threads Social Listening (Repliz Gold+ API Research across Target Keywords)
         $threadsService = app(ReplizService::class);
-        $liveProspects = $threadsService->searchThreadsContent('komisi marketplace');
+        $targetKeywords = ['ecommerce', 'jualanonline', 'marketplace', 'komisi marketplace', 'potongan admin'];
+        $selectedKeyword = $targetKeywords[array_rand($targetKeywords)];
+
+        $liveProspects = $threadsService->searchThreadsContent($selectedKeyword);
         $prospectInsights = '';
         if (! empty($liveProspects)) {
-            $prospectInsights = "POSTINGAN AUDIENS REAL-TIME DARI THREADS (Social Listening Insights):\n";
-            foreach (array_slice($liveProspects, 0, 3) as $p) {
-                $txt = $p['text'] ?? $p['description'] ?? '';
+            $prospectInsights = "POSTINGAN THREADS REAL-TIME DARI KOMUNITAS (Keyword Target: {$selectedKeyword}):\n";
+            foreach (array_slice($liveProspects, 0, 4) as $p) {
+                $txt = $p['text'] ?? $p['description'] ?? $p['content'] ?? '';
                 if (! empty($txt)) {
-                    $prospectInsights .= "- \"" . mb_substr($txt, 0, 120) . "\"\n";
+                    $prospectInsights .= "- \"" . mb_substr($txt, 0, 140) . "\"\n";
                 }
             }
-            $prospectInsights .= "Gunakan keluhan/topik audiens di atas sebagai bahan utama untuk menjawab kebutuhan seller secara relevan!\n\n";
+            $prospectInsights .= "Pelajari & tanggapi kebutuhan seller di atas secara relevan, solutif, dan tanpa ketergantungan marketplace!\n\n";
         }
 
         // 🧠 Step 0.5: Fetch Saved User Memory Rules (Directives sent by user via Telegram / UI)
