@@ -92,7 +92,7 @@ const copySnippet = () => {
                     <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 max-w-xl space-y-3">
                         <div class="text-xs font-semibold text-gray-400 uppercase">Interactive Widget Loaded:</div>
                         <div class="text-sm text-gray-700">
-                            Tombol mengambang 💬 <strong>CS AI Assistant</strong> telah otomatis aktif di pojok kanan bawah layar ini! Silakan klik tombol 💬 di kanan bawah untuk mencoba obrolan live.
+                            Tombol mengambang 💬 <strong>Waperu Support (CS AI)</strong> telah otomatis aktif di pojok kanan bawah layar ini! Silakan klik tombol 💬 di kanan bawah untuk mencoba obrolan live.
                         </div>
                     </div>
                 </div>

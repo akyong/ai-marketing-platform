@@ -151,13 +151,16 @@
     launcher.innerHTML = '💬';
     document.body.appendChild(launcher);
 
+    var customTitle = scriptTag ? scriptTag.getAttribute('data-title') : null;
+    var headerTitle = customTitle || 'Waperu Support';
+
     // Create Chat Window
     var windowBox = document.createElement('div');
     windowBox.className = 'aics-window';
     windowBox.innerHTML = `
         <div class="aics-header">
             <div>
-                <div class="aics-header-title" id="aics-title">CS AI Assistant</div>
+                <div class="aics-header-title" id="aics-title">${headerTitle}</div>
                 <div class="aics-header-subtitle">Online • Siap Menjawab Pertanyaan Anda</div>
             </div>
             <button class="aics-close" id="aics-close">✕</button>
