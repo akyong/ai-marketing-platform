@@ -42,7 +42,16 @@ Artisan::command('workspace:fix-all', function () {
         }
     }
 
-    $this->info("✅ Berhasil menghubungkan {$users->count()} akun user & memperbarui Widget Key!");
+    // Clean up & sanitize all existing posts content
+    $repliz = new \App\Services\ReplizService();
+    foreach (\App\Models\Post::all() as $post) {
+        $clean = $repliz->sanitizeForSocialMedia($post->content);
+        if ($clean !== $post->content) {
+            $post->update(['content' => $clean]);
+        }
+    }
+
+    $this->info("✅ Berhasil menghubungkan {$users->count()} akun user, memperbarui Widget Key, & membersihkan teks postingan!");
 })->purpose('Menghubungkan seluruh akun user ke Waperu Workspace');
 
 // Register Telegram Bot Webhook Command

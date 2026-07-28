@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Services\AiAgentCoordinator;
 use App\Services\GeminiService;
 use App\Services\ReplizService;
 use Illuminate\Http\RedirectResponse;
@@ -17,12 +18,8 @@ class PostController extends Controller
         $user = $request->user();
         $workspace = $user->currentWorkspace;
 
-        $posts = Post::where(function ($q) use ($workspace) {
-                if ($workspace) {
-                    $q->where('workspace_id', $workspace->id);
-                }
-            })
-            ->orderBy('created_at', 'desc')
+        $posts = Post::where('workspace_id', $workspace?->id)
+            ->latest()
             ->get();
 
         return Inertia::render('Post/Index', [
@@ -30,42 +27,33 @@ class PostController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function generate(Request $request, AiAgentCoordinator $coordinator): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'platforms' => 'nullable|array',
-            'scheduled_at' => 'nullable|date',
-        ]);
-
         $user = $request->user();
         $workspace = $user->currentWorkspace;
-        $brand = $workspace?->brands->first();
 
-        $status = ! empty($validated['scheduled_at']) ? 'scheduled' : 'draft';
+        if (! $workspace) {
+            return redirect()->back()->with('error', 'Workspace tidak ditemukan');
+        }
 
-        Post::create([
-            'workspace_id' => $workspace?->id,
-            'brand_id' => $brand?->id,
-            'title' => $validated['title'],
-            'content' => $validated['content'],
-            'platforms' => $validated['platforms'] ?? ['instagram', 'facebook', 'threads', 'tiktok'],
-            'status' => $status,
-            'scheduled_at' => $validated['scheduled_at'] ?? null,
-        ]);
+        $coordinator->runAutonomousCampaign(
+            $workspace,
+            "Buat strategi marketing harian untuk menarik seller online ke Waperu"
+        );
 
-        return redirect()->back()->with('success', 'Konten berhasil disimpan sebagai ' . ucfirst($status) . '!');
+        return redirect()->back()->with('success', '🚀 3 Campaign Baru Berhasil Dihasilkan & Dijadwalkan oleh Autonomous AI!');
     }
 
     public function publishNow(Post $post, ReplizService $repliz): RedirectResponse
     {
         $user = auth()->user();
-
-        // Auto-reassign workspace if workspace_id missing or mismatched
-        if ($user->current_workspace_id && $post->workspace_id !== $user->current_workspace_id) {
+        if ($user && $user->current_workspace_id && $post->workspace_id !== $user->current_workspace_id) {
             $post->update(['workspace_id' => $user->current_workspace_id]);
         }
+
+        // Sanitize content before publishing
+        $post->content = $repliz->sanitizeForSocialMedia($post->content);
+        $post->save();
 
         $success = $repliz->publish($post);
 
@@ -76,31 +64,41 @@ class PostController extends Controller
         return redirect()->back()->with('error', 'Gagal mempublikasikan konten: ' . ($post->error_message ?? 'Cek koneksi/API Key Repliz Anda.'));
     }
 
-    public function instantGenerateAndPublish(Request $request, GeminiService $gemini, ReplizService $repliz): RedirectResponse
+    public function instantGenerateAndPublish(Request $request, AiAgentCoordinator $coordinator, ReplizService $repliz): RedirectResponse
     {
         $user = $request->user();
         $workspace = $user->currentWorkspace;
-        $brand = $workspace?->brands->first();
 
-        $aiPrompt = "Buatkan 1 konten promosi menarik untuk " . ($brand?->name ?? 'Waperu') . " yang siap diterbitkan hari ini di Instagram, Threads, TikTok, dan Facebook.";
-        $content = $gemini->generate($aiPrompt, $brand);
-
-        $post = Post::create([
-            'workspace_id' => $workspace?->id,
-            'brand_id' => $brand?->id,
-            'title' => "Promosi Instant Test - " . now()->format('Y-m-d H:i'),
-            'content' => $content,
-            'platforms' => ['instagram', 'facebook', 'threads', 'tiktok'],
-            'status' => 'draft',
-        ]);
-
-        $success = $repliz->publish($post);
-
-        if ($success) {
-            return redirect()->back()->with('success', '🚀 Test Instant Post Berhasil Terkirim ke Repliz! (ID: ' . $post->repliz_post_id . ')');
+        if (! $workspace) {
+            return redirect()->back()->with('error', 'Workspace tidak ditemukan');
         }
 
-        return redirect()->back()->with('error', 'Gagal kirim ke Repliz: ' . ($post->error_message ?? 'Cek kunci API Repliz Anda'));
+        // Trigger AI Agent Coordinator Engine (v3 with Social Listening & Memory)
+        $coordinator->runAutonomousCampaign(
+            $workspace,
+            "Buat postingan promosi instan untuk Waperu"
+        );
+
+        // Pick the latest generated post
+        $latestPost = Post::where('workspace_id', $workspace->id)
+            ->latest()
+            ->first();
+
+        if (! $latestPost) {
+            return redirect()->back()->with('error', 'Gagal membuat postingan instan');
+        }
+
+        // Sanitize content
+        $latestPost->content = $repliz->sanitizeForSocialMedia($latestPost->content);
+        $latestPost->save();
+
+        $success = $repliz->publish($latestPost);
+
+        if ($success) {
+            return redirect()->back()->with('success', '🚀 Test Instant Post Berhasil Terkirim ke Repliz! (ID: ' . $latestPost->repliz_post_id . ')');
+        }
+
+        return redirect()->back()->with('error', 'Gagal kirim ke Repliz: ' . ($post->error_message ?? $latestPost->error_message ?? 'Cek kunci API Repliz Anda'));
     }
 
     public function destroy(Post $post): RedirectResponse
@@ -112,6 +110,6 @@ class PostController extends Controller
 
         $post->delete();
 
-        return redirect()->back()->with('success', 'Postingan telah dihapus.');
+        return redirect()->back()->with('success', 'Postingan berhasil dihapus');
     }
 }

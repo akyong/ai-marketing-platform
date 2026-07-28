@@ -33,25 +33,13 @@ class RunDailyAiMarketingJob extends Command
                     "Buat strategi marketing harian untuk menarik seller online dan UMKM ke {$brandName}"
                 );
 
-                // Auto-create scheduled posts for today at 09:00, 15:00, 20:00
-                $today = now()->format('Y-m-d');
-
-                // 09:00 Edukasi Post
-                Post::create([
-                    'workspace_id' => $workspace->id,
-                    'brand_id' => $brand?->id,
-                    'title' => "Post 09:00 — Edukasi Seller ({$brandName})",
-                    'content' => $result['copywriting'] ?? $result['plan'],
-                    'platforms' => ['instagram', 'facebook', 'tiktok', 'twitter'],
-                    'status' => 'scheduled',
-                    'scheduled_at' => "{$today} 09:00:00",
-                ]);
-
                 // Send Telegram Notification
                 $telegramText = "☀️ <b>Daily Autonomous AI Marketing Job Finished!</b>\n\n" .
                     "<b>Brand</b>: {$brandName}\n" .
                     "<b>Status</b>: 3 Postingan Harian Telah Dihasilkan & Terjadwal (09:00, 15:00, 20:00).\n\n" .
                     "Cek di Dashboard atau Menu Publishing Engine untuk detailnya!";
+
+                $telegram->sendMessage(env('TELEGRAM_ADMIN_CHAT_ID', ''), $telegramText);
 
                 // Send notification if telegram chat ID is configured in metadata
                 $this->info("Workspace {$workspace->name} berhasil diproses.");
