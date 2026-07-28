@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Workspace & Brand routes
+    Route::get('/settings', fn () => redirect()->route('workspace.settings'));
     Route::get('/workspace/settings', [WorkspaceController::class, 'settings'])->name('workspace.settings');
     Route::post('/workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
     Route::post('/workspaces/{workspace}/switch', [WorkspaceController::class, 'switchWorkspace'])->name('workspaces.switch');
