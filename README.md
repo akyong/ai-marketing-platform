@@ -12,6 +12,7 @@ Gotiau AI Platform adalah *Autonomous AI Marketing & Customer Support Engine* ya
 - 💬 **Embeddable CS AI Live Chat**: Widget obrolan 1-baris script untuk waperu.com.
 - 📱 **Telegram Remote Bot Engine**: Terhubung dengan perintah `/stats` & `/generate`.
 - ⚡ **Database Performance Indexed**: Dioptimalkan dengan compound indexes di PostgreSQL.
+- 🎨 **Modern UI/UX & Brand Identity**: Custom Gotiau AI Logo & Glassmorphic Interface.
 
 ---
 
