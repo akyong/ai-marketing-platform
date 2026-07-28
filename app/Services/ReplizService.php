@@ -92,6 +92,8 @@ class ReplizService
                     ];
                 }
 
+                $scheduleTime = $post->scheduled_at ? $post->scheduled_at->toISOString() : now()->addMinutes(2)->toISOString();
+
                 $schedulePayload = [
                     'title' => mb_substr($post->title, 0, 100),
                     'description' => $post->content,
@@ -99,7 +101,7 @@ class ReplizService
                     'type' => $postType,
                     'medias' => $mediasPayload,
                     'accountId' => $accountId,
-                    'scheduleAt' => now()->toISOString(),
+                    'scheduleAt' => $scheduleTime,
                 ];
 
                 $response = $httpClient->post('https://api.repliz.com/public/schedule', $schedulePayload);
