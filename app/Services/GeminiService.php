@@ -127,13 +127,20 @@ class GeminiService
         }
 
         $fullPrompt = $contextPrefix . $prompt;
-        $modelsToTry = ['gemini-3.1-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+        $modelsToTry = [
+            'gemini-2.5-flash',
+            'gemini-2.5-pro',
+            'gemini-3.1-flash-lite',
+            'gemini-2.0-flash',
+            'gemini-1.5-pro',
+            'gemini-1.5-flash',
+        ];
 
         foreach ($modelsToTry as $modelName) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key={$apiKey}";
 
             try {
-                $response = Http::timeout(20)->post($url, [
+                $response = Http::timeout(25)->post($url, [
                     'contents' => [
                         [
                             'role' => 'user',
@@ -143,7 +150,9 @@ class GeminiService
                         ]
                     ],
                     'generationConfig' => [
-                        'temperature' => 0.7,
+                        'temperature' => 0.75,
+                        'topP' => 0.95,
+                        'topK' => 40,
                     ]
                 ]);
 
