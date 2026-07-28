@@ -85,33 +85,35 @@ class TelegramWebhookController extends Controller
                 case '/postnow':
                 case '/instant':
                 case '/publishnow':
-                    $telegram->sendMessage($chatId, "🚀 <i>AI Marketer sedang membuat materi postingan & mempublikasikan INSTAN ke Repliz...</i>");
+                    $telegram->sendMessage($chatId, "🚀 <i>AI Marketer v3 (Self-Learning + Social Listening) sedang meriset pasar & menerbitkan POSTINGAN INSTAN ke Repliz...</i>");
 
-                    $aiPrompt = "Buatkan 1 konten promosi menarik untuk {$brandName} yang siap diterbitkan hari ini di Instagram, Threads, TikTok, dan Facebook.";
-                    $content = $gemini->generate($aiPrompt, $brand);
+                    $campaignResult = $coordinator->runAutonomousCampaign(
+                        $workspace,
+                        "Buat postingan promosi instan untuk {$brandName} yang menjawab keluhan seller online saat ini"
+                    );
 
-                    $post = Post::create([
-                        'workspace_id' => $workspace?->id,
-                        'brand_id' => $brand?->id,
-                        'title' => "Promosi Instant {$brandName} - " . now()->format('Y-m-d H:i'),
-                        'content' => $content,
-                        'platforms' => ['instagram', 'facebook', 'threads', 'tiktok'],
-                        'status' => 'draft',
-                    ]);
+                    // Fetch the latest created scheduled post to publish immediately
+                    $latestPost = Post::where('workspace_id', $workspace?->id)
+                        ->latest()
+                        ->first();
 
-                    $repliz = new ReplizService();
-                    $success = $repliz->publish($post);
+                    if ($latestPost) {
+                        $repliz = new ReplizService();
+                        $success = $repliz->publish($latestPost);
 
-                    if ($success) {
-                        $reply = "🚀 <b>BERHASIL POST INSTAN KE REPLIZ!</b>\n\n" .
-                            "📌 <b>Judul:</b> {$post->title}\n" .
-                            "🌐 <b>Platform Target:</b> Instagram, Facebook, TikTok, X\n" .
-                            "🆔 <b>Repliz Post ID:</b> {$post->repliz_post_id}\n\n" .
-                            "<b>Preview Copywriting:</b>\n" .
-                            mb_substr($post->content, 0, 800) . "...";
+                        if ($success) {
+                            $reply = "🚀 <b>BERHASIL POST INSTAN KE REPLIZ!</b>\n\n" .
+                                "📌 <b>Judul:</b> {$latestPost->title}\n" .
+                                "🌐 <b>Platform Target:</b> Facebook, Instagram, Threads, TikTok\n" .
+                                "🆔 <b>Repliz Post ID:</b> {$latestPost->repliz_post_id}\n\n" .
+                                "<b>Preview Copywriting:</b>\n" .
+                                htmlspecialchars(mb_substr($latestPost->content, 0, 800)) . "...";
+                        } else {
+                            $reply = "❌ <b>GAGAL DIPUBLIKASIKAN KE REPLIZ</b>\n\n" .
+                                "Log Error: " . htmlspecialchars($latestPost->error_message ?? 'Kunci API Repliz belum aktif atau gagal autentikasi.');
+                        }
                     } else {
-                        $reply = "❌ <b>GAGAL DIPUBLIKASIKAN KE REPLIZ</b>\n\n" .
-                            "Log Error: " . htmlspecialchars($post->error_message ?? 'Kunci API Repliz belum aktif atau gagal autentikasi.');
+                        $reply = "❌ <b>GAGAL: Postingan tidak berhasil dibuat.</b>";
                     }
 
                     $telegram->sendMessage($chatId, $reply);
