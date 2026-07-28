@@ -7,6 +7,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Controllers\WorkspaceController;
 use App\Models\AiGeneration;
+use App\Models\ApiKey;
+use App\Models\Post;
 use App\Services\AiAgentCoordinator;
 use App\Services\GeminiService;
 use Illuminate\Foundation\Application;
@@ -27,8 +29,17 @@ Route::get('/dashboard', function () {
     $workspace = auth()->user()->currentWorkspace()->with('defaultBrand')->first();
     $generations = $workspace ? AiGeneration::where('workspace_id', $workspace->id)->latest()->take(10)->get() : [];
 
+    $stats = [
+        'total_generations' => $workspace ? AiGeneration::where('workspace_id', $workspace->id)->count() : 0,
+        'total_posts' => $workspace ? Post::where('workspace_id', $workspace->id)->count() : 0,
+        'scheduled_posts' => $workspace ? Post::where('workspace_id', $workspace->id)->where('status', 'scheduled')->count() : 0,
+        'published_posts' => $workspace ? Post::where('workspace_id', $workspace->id)->where('status', 'published')->count() : 0,
+        'active_keys' => ApiKey::where('is_active', true)->count(),
+    ];
+
     return Inertia::render('Dashboard', [
         'generations' => $generations,
+        'stats' => $stats,
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

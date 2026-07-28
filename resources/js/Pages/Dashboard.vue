@@ -7,6 +7,7 @@ import { computed } from 'vue';
 
 const props = defineProps({
     generations: Array,
+    stats: Object,
 });
 
 const page = usePage();
@@ -51,7 +52,7 @@ const runAutonomousWorkflow = () => {
             <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                 <!-- Brand Context Card -->
                 <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white shadow-lg sm:rounded-lg" v-if="brand">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
                         <div>
                             <span class="text-xs uppercase tracking-wider text-indigo-200">Active Brand Context</span>
                             <h3 class="text-2xl font-bold">{{ brand.name }}</h3>
@@ -78,6 +79,33 @@ const runAutonomousWorkflow = () => {
                                 {{ autonomousForm.processing ? '⚡ AI Meriset & Menyusun Campaign...' : '⚡ Jalankan 3-Step Autonomous Campaign' }}
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Stats Overview Grid -->
+                <div class="grid grid-cols-2 gap-4 md:grid-cols-4" v-if="stats">
+                    <div class="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                        <div class="text-xs font-medium text-gray-500 uppercase">Eksekusi AI</div>
+                        <div class="mt-1 text-2xl font-bold text-gray-900">{{ stats.total_generations }}</div>
+                        <div class="mt-1 text-xs text-indigo-600">Riset & Content Generation</div>
+                    </div>
+
+                    <div class="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                        <div class="text-xs font-medium text-gray-500 uppercase">Total Postingan</div>
+                        <div class="mt-1 text-2xl font-bold text-gray-900">{{ stats.total_posts }}</div>
+                        <div class="mt-1 text-xs text-amber-600">{{ stats.scheduled_posts }} Terjadwal</div>
+                    </div>
+
+                    <div class="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                        <div class="text-xs font-medium text-gray-500 uppercase">Dipublikasikan (Repliz)</div>
+                        <div class="mt-1 text-2xl font-bold text-emerald-600">{{ stats.published_posts }}</div>
+                        <div class="mt-1 text-xs text-emerald-600">Live di Social Media</div>
+                    </div>
+
+                    <div class="rounded-lg bg-white p-5 shadow-sm border border-gray-100">
+                        <div class="text-xs font-medium text-gray-500 uppercase">API Key Pool</div>
+                        <div class="mt-1 text-2xl font-bold text-indigo-600">{{ stats.active_keys }}</div>
+                        <div class="mt-1 text-xs text-indigo-600">Keys Aktif (Auto-Failover)</div>
                     </div>
                 </div>
 
