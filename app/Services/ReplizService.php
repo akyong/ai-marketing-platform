@@ -33,20 +33,27 @@ class ReplizService
         }
 
         try {
-            $response = Http::withToken($this->apiKey)
-                ->post('https://api.repliz.com/v1/posts', [
-                    'title' => $post->title,
-                    'caption' => $post->content,
-                    'platforms' => $post->platforms ?? ['instagram', 'facebook'],
-                    'media_urls' => $post->media_urls ?? [],
-                ]);
+            // Repliz API uses HTTP Basic Authentication (Access Key : Secret Key)
+            if (str_contains($this->apiKey, ':')) {
+                [$accessKey, $secretKey] = explode(':', $this->apiKey, 2);
+                $httpClient = Http::withBasicAuth(trim($accessKey), trim($secretKey));
+            } else {
+                $httpClient = Http::withToken($this->apiKey);
+            }
+
+            $response = $httpClient->post('https://api.repliz.com/public/post', [
+                'title' => $post->title,
+                'caption' => $post->content,
+                'platforms' => $post->platforms ?? ['instagram', 'facebook'],
+                'media_urls' => $post->media_urls ?? [],
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
                 $post->update([
                     'status' => 'published',
                     'published_at' => now(),
-                    'repliz_post_id' => $data['id'] ?? 'repliz_' . uniqid(),
+                    'repliz_post_id' => $data['id'] ?? $data['_id'] ?? 'repliz_' . uniqid(),
                 ]);
                 return true;
             }

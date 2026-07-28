@@ -5,10 +5,14 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     apiKeys: Array,
 });
+
+const replizAccessKey = ref('');
+const replizSecretKey = ref('');
 
 const keyForm = useForm({
     key_name: '',
@@ -17,8 +21,16 @@ const keyForm = useForm({
 });
 
 const addKey = () => {
+    if (keyForm.provider === 'repliz' && replizAccessKey.value && replizSecretKey.value) {
+        keyForm.api_key = `${replizAccessKey.value.trim()}:${replizSecretKey.value.trim()}`;
+    }
+
     keyForm.post(route('api-keys.store'), {
-        onSuccess: () => keyForm.reset(),
+        onSuccess: () => {
+            keyForm.reset();
+            replizAccessKey.value = '';
+            replizSecretKey.value = '';
+        },
     });
 };
 
@@ -52,8 +64,8 @@ const deleteKey = (keyId) => {
             <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                 <!-- Info Banner -->
                 <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-                    <strong>💡 Fitur Smart Key Rotation:</strong> Anda dapat menambahkan beberapa API Key (misal: 5 akun Gemini / Telegram).
-                    Sistem akan otomatis menggunakan key bergiliran (*round-robin*) dan berpindah ke key berikutnya (*auto-failover*) jika salah satu akun terkena limit kuota.
+                    <strong>💡 Fitur Smart Key Rotation:</strong> Anda dapat menambahkan beberapa API Key (misal: Gemini, Repliz, Telegram).
+                    Khusus <strong>Repliz API Key</strong>, sistem mendukung format <strong>Access Key + Secret Key</strong> (HTTP Basic Auth) untuk penerbitan ke media sosial.
                 </div>
 
                 <!-- Add New Key Form -->
@@ -62,51 +74,80 @@ const deleteKey = (keyId) => {
                         Tambah API Key / Token Baru
                     </h3>
 
-                    <form @submit.prevent="addKey" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4 items-end">
-                        <div>
-                            <InputLabel for="key_name" value="Nama Label Key" />
-                            <TextInput
-                                id="key_name"
-                                type="text"
-                                class="mt-1 block w-full"
-                                v-model="keyForm.key_name"
-                                required
-                                placeholder="Misal: Gemini Akun 1"
-                            />
-                            <InputError class="mt-2" :message="keyForm.errors.key_name" />
+                    <form @submit.prevent="addKey" class="mt-4 space-y-4">
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <div>
+                                <InputLabel for="key_name" value="Nama Label Key" />
+                                <TextInput
+                                    id="key_name"
+                                    type="text"
+                                    class="mt-1 block w-full"
+                                    v-model="keyForm.key_name"
+                                    required
+                                    placeholder="Misal: Repliz Account Utama"
+                                />
+                                <InputError class="mt-2" :message="keyForm.errors.key_name" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="provider" value="Provider API" />
+                                <select
+                                    id="provider"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    v-model="keyForm.provider"
+                                >
+                                    <option value="gemini">Google Gemini AI</option>
+                                    <option value="repliz">Repliz API (Access Key & Secret Key)</option>
+                                    <option value="telegram">Telegram Bot Token</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="claude">Anthropic Claude</option>
+                                </select>
+                                <InputError class="mt-2" :message="keyForm.errors.provider" />
+                            </div>
+
+                            <!-- Standard Single API Key Field -->
+                            <div v-if="keyForm.provider !== 'repliz'">
+                                <InputLabel for="api_key" value="API Key / Token Value" />
+                                <TextInput
+                                    id="api_key"
+                                    type="password"
+                                    class="mt-1 block w-full"
+                                    v-model="keyForm.api_key"
+                                    required
+                                    placeholder="AIzaSy... atau 12345:ABC..."
+                                />
+                                <InputError class="mt-2" :message="keyForm.errors.api_key" />
+                            </div>
                         </div>
 
-                        <div>
-                            <InputLabel for="provider" value="Provider" />
-                            <select
-                                id="provider"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                                v-model="keyForm.provider"
-                            >
-                                <option value="gemini">Google Gemini</option>
-                                <option value="repliz">Repliz API Key (Social Media Publishing)</option>
-                                <option value="telegram">Telegram Bot Token</option>
-                                <option value="openai">OpenAI</option>
-                                <option value="claude">Anthropic Claude</option>
-                            </select>
-                            <InputError class="mt-2" :message="keyForm.errors.provider" />
+                        <!-- Repliz Dual Field (Access Key & Secret Key) -->
+                        <div v-if="keyForm.provider === 'repliz'" class="grid grid-cols-1 gap-4 md:grid-cols-2 rounded-xl bg-purple-50 p-4 border border-purple-200">
+                            <div>
+                                <InputLabel for="repliz_access" value="Repliz Access Key (Username)" />
+                                <TextInput
+                                    id="repliz_access"
+                                    type="text"
+                                    class="mt-1 block w-full"
+                                    v-model="replizAccessKey"
+                                    required
+                                    placeholder="Misal: rep_acc_83e7..."
+                                />
+                            </div>
+                            <div>
+                                <InputLabel for="repliz_secret" value="Repliz Secret Key (Password)" />
+                                <TextInput
+                                    id="repliz_secret"
+                                    type="password"
+                                    class="mt-1 block w-full"
+                                    v-model="replizSecretKey"
+                                    required
+                                    placeholder="Misal: rep_sec_91f4..."
+                                />
+                            </div>
                         </div>
 
-                        <div>
-                            <InputLabel for="api_key" value="API Key / Token Value" />
-                            <TextInput
-                                id="api_key"
-                                type="password"
-                                class="mt-1 block w-full"
-                                v-model="keyForm.api_key"
-                                required
-                                placeholder="AIzaSy... atau 12345:ABC..."
-                            />
-                            <InputError class="mt-2" :message="keyForm.errors.api_key" />
-                        </div>
-
-                        <div>
-                            <PrimaryButton class="w-full justify-center" :disabled="keyForm.processing">
+                        <div class="flex justify-end">
+                            <PrimaryButton class="w-full md:w-auto px-6" :disabled="keyForm.processing">
                                 + Simpan ke Pool
                             </PrimaryButton>
                         </div>
@@ -188,7 +229,7 @@ const deleteKey = (keyId) => {
                     </div>
 
                     <div v-else class="py-8 text-center text-sm text-gray-500">
-                        Belum ada API Key yang tersimpan di Pool. Tambahkan API Key Gemini / Telegram di atas!
+                        Belum ada API Key yang tersimpan di Pool. Tambahkan API Key Gemini / Repliz / Telegram di atas!
                     </div>
                 </div>
             </div>
