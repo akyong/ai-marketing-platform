@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\AiGeneration;
+use App\Models\ApiKey;
+use App\Models\Post;
 use App\Models\Workspace;
+use App\Services\AiAgentCoordinator;
 use App\Services\GeminiService;
 use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
 {
-    public function handle(Request $request, GeminiService $gemini, TelegramService $telegram): JsonResponse
+    public function handle(Request $request, GeminiService $gemini, TelegramService $telegram, AiAgentCoordinator $coordinator): JsonResponse
     {
         $update = $request->all();
         Log::info('Telegram Webhook Update', $update);
@@ -23,13 +26,64 @@ class TelegramWebhookController extends Controller
 
         $chatId = $update['message']['chat']['id'];
         $userText = trim($update['message']['text']);
-        $senderName = $update['message']['from']['first_name'] ?? 'User';
+        $senderName = $update['message']['from']['first_name'] ?? 'Boss';
 
         // Get default active Workspace (Waperu)
         $workspace = Workspace::with('defaultBrand')->first();
         $brand = $workspace ? $workspace->brands->first() : null;
+        $brandName = $brand ? $brand->name : 'Waperu';
 
-        // Process message with Gemini AI
+        // Handle Slash Commands
+        if (str_starts_with($userText, '/')) {
+            $command = strtolower(explode(' ', $userText)[0]);
+
+            switch ($command) {
+                case '/start':
+                case '/help':
+                    $reply = "🤖 <b>AI Marketer Telegram Controller ({$brandName})</b>\n\n" .
+                        "Halo {$senderName}! Anda bisa mengontrol AI Marketer otonom dari Telegram:\n\n" .
+                        "📌 <b>Perintah Tersedia:</b>\n" .
+                        "• /stats — Cek status & statistik marketing hari ini\n" .
+                        "• /generate — Jalankan 3-step riset & buat campaign baru\n" .
+                        "• /publish — Cek postingan yang siap tayang di Repliz\n" .
+                        "• Atau ketik pesan langsung untuk berdiskusi strategi AI!";
+                    $telegram->sendMessage($chatId, $reply);
+                    return response()->json(['status' => 'command_processed']);
+
+                case '/stats':
+                case '/status':
+                    $genCount = AiGeneration::where('workspace_id', $workspace?->id)->count();
+                    $scheduledCount = Post::where('workspace_id', $workspace?->id)->where('status', 'scheduled')->count();
+                    $publishedCount = Post::where('workspace_id', $workspace?->id)->where('status', 'published')->count();
+                    $activeKeys = ApiKey::where('is_active', true)->count();
+
+                    $reply = "📊 <b>Statistik AI Marketer ({$brandName}) Hari Ini</b>\n\n" .
+                        "• 🧠 Total Eksekusi AI: <b>{$genCount}</b>\n" .
+                        "• ⏳ Postingan Terjadwal: <b>{$scheduledCount}</b>\n" .
+                        "• 🚀 Postingan Published (Repliz): <b>{$publishedCount}</b>\n" .
+                        "• 🔑 Active API Keys Pool: <b>{$activeKeys}</b>\n\n" .
+                        "Status Autopilot: 🟢 <b>AKTIF 24/7</b>";
+                    $telegram->sendMessage($chatId, $reply);
+                    return response()->json(['status' => 'command_processed']);
+
+                case '/generate':
+                    $telegram->sendMessage($chatId, "⚡ <i>AI Marketer sedang meriset pasar & menyusun campaign 3-step... Mohon tunggu sebentar.</i>");
+
+                    $result = $coordinator->runAutonomousCampaign(
+                        $workspace,
+                        "Buat strategi marketing harian untuk menarik seller online dan UMKM ke {$brandName}"
+                    );
+
+                    $reply = "✅ <b>Autonomous Campaign Berhasil Dihasilkan!</b>\n\n" .
+                        "📌 <b>Hasil Copywriting & Jadwal:</b>\n\n" .
+                        mb_substr($result['copywriting'], 0, 1000) . "...\n\n" .
+                        "<i>Postingan telah dijadwalkan dan akan diterbitkan otomatis via Repliz!</i>";
+                    $telegram->sendMessage($chatId, $reply);
+                    return response()->json(['status' => 'command_processed']);
+            }
+        }
+
+        // Process custom text prompt with Gemini AI
         $aiResponse = $gemini->generate($userText, $brand);
 
         // Record AI Generation in database
@@ -48,7 +102,7 @@ class TelegramWebhookController extends Controller
         }
 
         // Format message for Telegram
-        $replyText = "🤖 <b>AI Marketing Team ({$brand->name})</b>\n\n" .
+        $replyText = "🤖 <b>AI Marketing Team ({$brandName})</b>\n\n" .
             htmlspecialchars($aiResponse);
 
         // Send reply back to Telegram

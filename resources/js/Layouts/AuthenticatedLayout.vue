@@ -63,6 +63,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     📢 Publishing Engine
                                 </NavLink>
+                                <NavLink
+                                    :href="route('guide.index')"
+                                    :active="route().current('guide.*')"
+                                >
+                                    📖 Panduan Autopilot
+                                </NavLink>
                             </div>
                         </div>
 
