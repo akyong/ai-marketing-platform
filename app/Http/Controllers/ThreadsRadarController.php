@@ -45,16 +45,26 @@ class ThreadsRadarController extends Controller
                         $metadata['target_url'] = "https://www.threads.net/@{$username}/post/{$code}";
                     }
 
-                    // Always ensure conversation_threads timeline contains at least the initial AI draft
+                    // Clean response_text and drafted_reply of any preambles
+                    $cleanResponse = OllamaService::cleanReplyDraft($log->response_text ?: ($metadata['drafted_reply'] ?? ''));
+                    $log->response_text = $cleanResponse;
+                    $metadata['drafted_reply'] = $cleanResponse;
+
+                    // Always ensure conversation_threads timeline contains at least the initial AI draft and clean all assistant messages
                     if (empty($metadata['conversation_threads'])) {
-                        $initialDraft = $log->response_text ?: ($metadata['drafted_reply'] ?? 'Draft Balasan Awal');
                         $metadata['conversation_threads'] = [
                             [
                                 'role' => 'assistant',
-                                'content' => $initialDraft,
+                                'content' => $cleanResponse,
                                 'created_at' => $log->created_at?->toIso8601String() ?? now()->toIso8601String(),
                             ]
                         ];
+                    } else {
+                        foreach ($metadata['conversation_threads'] as &$msg) {
+                            if (($msg['role'] ?? '') === 'assistant' && ! empty($msg['content'])) {
+                                $msg['content'] = OllamaService::cleanReplyDraft($msg['content']);
+                            }
+                        }
                     }
 
                     $log->metadata = $metadata;

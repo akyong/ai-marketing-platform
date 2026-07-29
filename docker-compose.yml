@@ -56,7 +56,7 @@ services:
       resources:
         limits:
           cpus: '1.2'
-          memory: 2.2G
+          memory: 2200m
     volumes:
       - ollama_data:/root/.ollama
     restart: always

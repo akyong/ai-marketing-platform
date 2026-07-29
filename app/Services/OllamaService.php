@@ -68,14 +68,14 @@ class OllamaService
     }
 
     /**
-     * Clean and extract ONLY the pure comment text from AI responses
+     * Clean and extract ONLY the pure comment text from AI responses (Universal Preamble Stripper)
      */
     public static function cleanReplyDraft(string $rawText): string
     {
         $text = trim($rawText);
 
-        // 1. Extract text after "Draf Balasan:" or "Draft Balasan:" or "Balasan:"
-        if (preg_match('/(?:draf|draft|balasan|respons)\s*(?:balasan)?\s*:\s*(.*)/is', $text, $matches)) {
+        // 1. Extract text after "Draf Balasan:", "Draft Balasan:", "Usulan Balasan:", etc.
+        if (preg_match('/(?:berikut|tentu|ini)?\s*(?:adalah)?\s*(?:draf|draft|usulan|opsi|rekomendasi|contoh)?\s*(?:balasan|komentar|respon|response)\s*(?:tersebut|solutif)?\s*:\s*(.*)/is', $text, $matches)) {
             $extracted = trim($matches[1]);
             if (! empty($extracted)) {
                 $text = $extracted;
@@ -83,26 +83,38 @@ class OllamaService
         }
 
         // 2. Strip surrounding quotes if present (e.g. "Halo Kak! ...")
-        if (preg_match('/^["\'](.*)["\']$/s', $text, $matches)) {
+        if (preg_match('/^["\'`«»““](.*)["\'`«»””]$/s', $text, $matches)) {
             $text = trim($matches[1]);
         }
 
-        // 3. Filter out lines starting with AI conversational preambles
+        // 3. Filter out lines starting with conversational preambles
         $lines = explode("\n", $text);
         $cleanLines = [];
+        $foundBody = false;
+
         foreach ($lines as $line) {
             $trimmed = trim($line);
             if (empty($trimmed)) continue;
 
-            if (preg_match('/^(Berikut|Tentu|Berikutnya|Ini adalah|Draf|Draft|Halo! Berikut)\b/i', $trimmed) && ! str_contains($trimmed, 'Waperu') && ! str_contains($trimmed, '0%')) {
+            // Check if line is conversational preamble
+            $isPreamble = preg_match('/^(Berikut|Tentu|Berikutnya|Ini adalah|Ini dia|Draf|Draft|Respon|Response|Catatan|Saran|Halo! Berikut)\b/i', $trimmed)
+                && ! str_contains($trimmed, 'Waperu')
+                && ! str_contains($trimmed, '0%')
+                && ! str_contains($trimmed, 'QRIS');
+
+            if ($isPreamble && ! $foundBody) {
                 continue;
             }
+
+            $foundBody = true;
             $cleanLines[] = $line;
         }
 
         $result = ! empty($cleanLines) ? implode("\n", $cleanLines) : $text;
 
-        // Clean markdown remnants & quotes
+        // Clean quotes & markdown remnants
+        $result = preg_replace('/^["\'`«»““]\s*/u', '', $result);
+        $result = preg_replace('/\s*["\'`«»””]$/u', '', $result);
         $result = str_replace(['**', '###', 'As an AI', 'Sebagai AI'], '', $result);
 
         return trim($result, " \t\n\r\0\x0B\"'");
