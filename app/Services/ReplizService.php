@@ -274,6 +274,47 @@ class ReplizService
     }
 
     /**
+     * Fetch connected Threads account 24-character ID from Repliz
+     */
+    public function getThreadsAccountId(?string $apiKey = null): ?string
+    {
+        $key = $apiKey ?: $this->getActiveApiKey();
+        if (empty($key)) return null;
+
+        try {
+            if (str_contains($key, ':')) {
+                [$accessKey, $secretKey] = explode(':', $key, 2);
+                $httpClient = Http::withBasicAuth(trim($accessKey), trim($secretKey));
+            } else {
+                $httpClient = Http::withHeaders(['x-api-key' => $key])->withToken($key);
+            }
+
+            $response = $httpClient->get('https://api.repliz.com/public/account', ['limit' => 20]);
+            if ($response->successful()) {
+                $json = $response->json();
+                $accounts = $json['docs'] ?? $json['data'] ?? $json['accounts'] ?? $json['items'] ?? (is_array($json) ? $json : []);
+                foreach ($accounts as $acc) {
+                    $platform = strtolower($acc['type'] ?? $acc['platform'] ?? '');
+                    $id = $acc['_id'] ?? $acc['id'] ?? $acc['generatedId'] ?? null;
+                    if ($platform === 'threads' && ! empty($id) && strlen($id) === 24) {
+                        return $id;
+                    }
+                }
+                foreach ($accounts as $acc) {
+                    $id = $acc['_id'] ?? $acc['id'] ?? $acc['generatedId'] ?? null;
+                    if (! empty($id) && strlen($id) === 24) {
+                        return $id;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("Repliz getThreadsAccountId Exception: " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
      * Research & Social Listening: Search Threads for posts matching keywords (Gold+ Repliz API feature)
      */
     public function searchThreadsContent(string $query): array
@@ -291,11 +332,15 @@ class ReplizService
                 $httpClient = Http::withHeaders(['x-api-key' => $apiKey])->withToken($apiKey);
             }
 
-            $response = $httpClient->get('https://api.repliz.com/public/research/threads/content/search', [
-                'query' => $query,
-                'q' => $query,
-                'limit' => 10,
-            ]);
+            $accountId = $this->getThreadsAccountId($apiKey);
+            $queryParams = [
+                'search' => $query,
+            ];
+            if (! empty($accountId)) {
+                $queryParams['accountId'] = $accountId;
+            }
+
+            $response = $httpClient->get('https://api.repliz.com/public/research/threads/content/search', $queryParams);
 
             if ($response->successful()) {
                 $data = $response->json();
