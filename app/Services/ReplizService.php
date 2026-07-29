@@ -276,6 +276,7 @@ class ReplizService
             return [];
         }
 
+        try {
             $headers = ['x-api-key' => $this->apiKey];
             if (str_contains($this->apiKey, ':')) {
                 [$accessKey, $secretKey] = explode(':', $this->apiKey, 2);
