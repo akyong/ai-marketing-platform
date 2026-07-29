@@ -164,16 +164,21 @@ class ResearchProspectsWithOllama extends Command
         $insightRule = trim(str_replace(['**', '###'], '', $insightRule));
 
         // 💬 5. Draft friendly, helpful reply content using Ollama AI
-        $replyPrompt = "Anda adalah tim resmi Waperu.com yang ramah dan emosional.\n" .
+        $replyPrompt = "Anda adalah tim resmi Waperu.com yang ramah, empati, dan solutif.\n" .
             "MEMORI BRAND WAPERU:\n{$brandKnowledge}\n\n" .
             "ATURAN MEMORI KHUSUS DARI PEMILIK BRAND:\n- {$ownerLearnedRulesText}\n\n" .
-            "POSTINGAN KELUHAN SELLER (@{$targetUsername}):\n{$targetText}\n\n" .
-            "TUGAS 2: Tuliskan balasan singkat (maksimal 280 karakter) untuk postingan Threads tersebut yang memberikan empati dan menawarkan solusi toko online mandiri Waperu 0% komisi.\n" .
+            "POSTINGAN KELUHAN SELLER (@{$targetUsername}):\n\"{$targetText}\"\n\n" .
+            "TUGAS 2: Tuliskan balasan komentar Threads singkat (maksimal 280 karakter) yang empati dan menawarkan solusi toko online mandiri Waperu 0% komisi.\n" .
             "PATUHI SELURUH MEMORI DARI PEMILIK BRAND DI ATAS.\n" .
-            "Tuliskan 100% sebagai balasan manusiawi, ramah, dan solutif. Dilarang kata pengantar AI.";
+            "DILARANG keras menjawab 'Maaf saya tidak bisa membantu', 'Sebagai AI', atau kata penolakan lainnya. Selalu berikan respon solutif ramah manusiawi.";
 
         $draftedReply = $ollama->generate($replyPrompt);
-        $draftedReply = trim(str_replace(['**', '###'], '', $draftedReply));
+        $draftedReply = trim(str_replace(['**', '###', 'As an AI', 'Sebagai AI'], '', $draftedReply));
+
+        // If response is meta refusal or empty, provide a clean friendly default
+        if (empty($draftedReply) || str_contains($draftedReply, 'tidak bisa membantu') || str_contains($draftedReply, 'Maaf')) {
+            $draftedReply = "Halo kak @{$targetUsername}! Daripada pusing urus potongan admin & komisi marketplace, yuk coba bikin toko online mandiri di Waperu.com 0% komisi, QRIS & COD langsung ke rekening sendiri. Semoga lancar terus usahanya kak!";
+        }
 
         // 📊 6. Log 1-minute execution with Direct Threads URL into AiGeneration database table
         if ($workspace) {

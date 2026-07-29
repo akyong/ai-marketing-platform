@@ -145,10 +145,11 @@ class ThreadsRadarController extends Controller
         return redirect()->back()->with('error', '⚠️ Balasan Gagal Diterbitkan: ' . ($post->error_message ?? 'Periksa akun Repliz Anda.'));
     }
 
-    public function saveFeedback(Request $request)
+    public function saveFeedback(Request $request, OllamaService $ollama)
     {
         $request->validate([
             'feedback' => 'required|string|max:1000',
+            'log_id' => 'nullable|integer',
         ]);
 
         $user = $request->user();
@@ -160,6 +161,7 @@ class ThreadsRadarController extends Controller
 
         $feedbackText = trim($request->feedback);
 
+        // 1. Save rule to AI Memory database
         AiGeneration::create([
             'workspace_id' => $workspace->id,
             'user_id' => $user->id,
@@ -174,7 +176,61 @@ class ThreadsRadarController extends Controller
             ],
         ]);
 
-        return redirect()->back()->with('success', "🧠 Memori Pembelajaran Disimpan! Ollama AI akan selalu mengingat aturan ini: \"{$feedbackText}\"");
+        // 2. If log_id is provided, immediately re-generate the drafted reply using updated memory!
+        $logId = $request->input('log_id');
+        $newReply = null;
+
+        if ($logId) {
+            $log = AiGeneration::where('workspace_id', $workspace->id)->find($logId);
+            if ($log) {
+                $brand = \App\Models\Brand::where('workspace_id', $workspace->id)->latest()->first();
+                $brandKnowledge = ! empty($brand?->knowledge_base)
+                    ? $brand->knowledge_base
+                    : 'Waperu.com: Platform Toko Online Mandiri 0% Komisi, QRIS & COD langsung ke rekening.';
+
+                // Collect all active memory rules
+                $memoryRules = AiGeneration::where('workspace_id', $workspace->id)
+                    ->where('type', 'user_memory_rule')
+                    ->latest()
+                    ->take(15)
+                    ->pluck('response_text')
+                    ->filter()
+                    ->implode("\n- ");
+
+                $metadata = $log->metadata ?? [];
+                $scannedPosts = $metadata['scanned_posts'] ?? [];
+                $scannedText = ! empty($scannedPosts) && is_array($scannedPosts) ? $scannedPosts[0] : $log->prompt;
+                $targetUsername = $metadata['username'] ?? 'seller';
+
+                $prompt = "Anda adalah tim resmi Waperu.com yang ramah, empati, dan solutif.\n" .
+                    "MEMORI BRAND WAPERU:\n{$brandKnowledge}\n\n" .
+                    "ATURAN MEMORI KHUSUS DARI PEMILIK BRAND:\n- {$memoryRules}\n\n" .
+                    "POSTINGAN SELLER (@{$targetUsername}):\n\"{$scannedText}\"\n\n" .
+                    "TUGAS: Tuliskan balasan komentar Threads yang ramah, solutif, dan relevan dengan postingan seller tersebut.\n" .
+                    "PATUHI SELURUH MEMORI DARI PEMILIK BRAND DI ATAS.\n" .
+                    "DILARANG keras menjawab 'Maaf saya tidak bisa membantu', 'Sebagai AI', atau penolakan lainnya. Selalu berikan respon solutif ramah manusiawi maksimal 280 karakter.";
+
+                $newReply = $ollama->generate($prompt);
+                $newReply = trim(str_replace(['**', '###', 'As an AI', 'Sebagai AI'], '', $newReply));
+
+                if (empty($newReply) || str_contains($newReply, 'tidak bisa membantu') || str_contains($newReply, 'Maaf')) {
+                    $newReply = "Halo kak @{$targetUsername}! Daripada pusing urus potongan admin & komisi marketplace, yuk coba bikin toko online mandiri di Waperu.com 0% komisi, QRIS & COD langsung ke rekening sendiri. Semoga lancar terus usahanya kak!";
+                }
+
+                $metadata['drafted_reply'] = $newReply;
+                $metadata['last_feedback'] = $feedbackText;
+                $log->update([
+                    'response_text' => $newReply,
+                    'metadata' => $metadata,
+                ]);
+            }
+        }
+
+        $msg = $newReply
+            ? "🧠 Memori Disimpan & Draft Balasan Di-update oleh Ollama AI!"
+            : "🧠 Memori Pembelajaran Disimpan! Ollama AI akan selalu mengingat aturan ini: \"{$feedbackText}\"";
+
+        return redirect()->back()->with('success', $msg);
     }
 
     public function deleteFeedback(AiGeneration $aiGeneration)
