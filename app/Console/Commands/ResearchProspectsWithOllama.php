@@ -201,6 +201,13 @@ class ResearchProspectsWithOllama extends Command
                     'scanned_posts' => [$targetText],
                     'insight_extracted' => $insightRule,
                     'drafted_reply' => $draftedReply,
+                    'conversation_threads' => [
+                        [
+                            'role' => 'assistant',
+                            'content' => $draftedReply,
+                            'created_at' => now()->toIso8601String(),
+                        ]
+                    ],
                     'executed_at' => now()->toIso8601String(),
                 ],
             ]);

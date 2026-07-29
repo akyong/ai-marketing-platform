@@ -43,8 +43,21 @@ class ThreadsRadarController extends Controller
                         $code = $metadata['target_post_id'] ?? 'DbSKJzAk4ww';
                         if ($code === 'sample1' || empty($code)) $code = 'DbSKJzAk4ww';
                         $metadata['target_url'] = "https://www.threads.net/@{$username}/post/{$code}";
-                        $log->metadata = $metadata;
                     }
+
+                    // Always ensure conversation_threads timeline contains at least the initial AI draft
+                    if (empty($metadata['conversation_threads'])) {
+                        $initialDraft = $log->response_text ?: ($metadata['drafted_reply'] ?? 'Draft Balasan Awal');
+                        $metadata['conversation_threads'] = [
+                            [
+                                'role' => 'assistant',
+                                'content' => $initialDraft,
+                                'created_at' => $log->created_at?->toIso8601String() ?? now()->toIso8601String(),
+                            ]
+                        ];
+                    }
+
+                    $log->metadata = $metadata;
                     return $log;
                 })
             : [];
