@@ -44,11 +44,18 @@ class ReplizService
         }
 
         try {
-            // Check if this post is a comment reply to a specific social media post/thread
+            // Check if this post is a comment reply to a specific social media post/thread or nested comment
             $targetPostId = $post->metadata['target_post_id'] ?? $post->metadata['content_id'] ?? null;
+            $targetCommentId = $post->metadata['target_comment_id'] ?? $post->metadata['comment_id'] ?? null;
+
             if (! empty($targetPostId)) {
                 $cleanComment = $this->sanitizeForSocialMedia($post->content, 'threads');
-                $commentSuccess = $this->createComment((string) $targetPostId, $cleanComment);
+
+                if (! empty($targetCommentId)) {
+                    $commentSuccess = $this->messageComment((string) $targetPostId, (string) $targetCommentId, $cleanComment);
+                } else {
+                    $commentSuccess = $this->createComment((string) $targetPostId, $cleanComment);
+                }
 
                 if ($commentSuccess) {
                     $post->update([
@@ -473,6 +480,45 @@ class ReplizService
             Log::error("Repliz Create Comment Failed HTTP {$response->status()}", ['body' => $response->body()]);
         } catch (\Exception $e) {
             Log::error("Repliz Create Comment Exception: " . $e->getMessage());
+        }
+
+        return false;
+    }
+
+    /**
+     * Reply to a specific comment (nested comment reply)
+     * POST /public/content/{contentId}/message
+     * Docs: https://docs.repliz.com/api/content/message-comment.html
+     */
+    public function messageComment(string $contentId, string $commentId, string $text, ?string $accountId = null): bool
+    {
+        if (empty($this->apiKey)) {
+            Log::info("REPLIZ_API_KEY empty. Simulating nested comment reply on content {$contentId}, comment {$commentId}");
+            return true;
+        }
+
+        $accId = $accountId ?: $this->getThreadsAccountId();
+        if (empty($accId)) {
+            Log::warning("Repliz messageComment: accountId Threads tidak ditemukan.");
+            return false;
+        }
+
+        try {
+            $httpClient = $this->buildHttpClient();
+            $response = $httpClient->post("https://api.repliz.com/public/content/{$contentId}/message", [
+                'accountId' => $accId,
+                'commentId' => $commentId,
+                'text' => $text,
+            ]);
+
+            if ($response->successful()) {
+                Log::info("Repliz Message Comment Success for contentId {$contentId}, commentId {$commentId}", ['res' => $response->json()]);
+                return true;
+            }
+
+            Log::error("Repliz Message Comment Failed HTTP {$response->status()}", ['body' => $response->body()]);
+        } catch (\Exception $e) {
+            Log::error("Repliz Message Comment Exception: " . $e->getMessage());
         }
 
         return false;
