@@ -9,8 +9,11 @@ use Illuminate\Support\Str;
 // Run Autonomous AI Marketing Job every morning at 07:00 AM
 Schedule::command('ai:daily-marketing')->dailyAt('07:00');
 
-// Run Threads Social Radar Listening every 4 hours (scans ecommerce, jualanonline, marketplace)
+// Run Threads Social Radar Listening every 4 hours
 Schedule::command('threads:listen')->everyFourHours();
+
+// Run Local Ollama AI 24/7 Prospect Research & Customer Discovery every 10 minutes
+Schedule::command('ollama:research')->everyTenMinutes();
 
 // Auto-publish scheduled social media posts every minute via Repliz
 Schedule::command('posts:publish-scheduled')->everyMinute();
