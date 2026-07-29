@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
     query: {
@@ -29,6 +29,21 @@ const props = defineProps({
         default: true,
     },
 });
+
+// Lazy loading state (10 rows per batch)
+const visibleLogsCount = ref(10);
+const visibleLiveCount = ref(10);
+
+const visibleProspectLogs = computed(() => props.prospectLogs.slice(0, visibleLogsCount.value));
+const visibleLiveThreadsPosts = computed(() => props.liveThreadsPosts.slice(0, visibleLiveCount.value));
+
+const loadMoreLogs = () => {
+    visibleLogsCount.value += 10;
+};
+
+const loadMoreLive = () => {
+    visibleLiveCount.value += 10;
+};
 
 const searchForm = useForm({
     query: props.query,
@@ -302,7 +317,7 @@ const formatDate = (dateStr) => {
 
                     <div v-if="prospectLogs && prospectLogs.length > 0" class="space-y-4">
                         <div
-                            v-for="log in prospectLogs"
+                            v-for="log in visibleProspectLogs"
                             :key="log.id"
                             class="rounded-xl border border-indigo-100 bg-indigo-50/30 p-5 transition hover:border-indigo-300"
                         >
@@ -413,6 +428,17 @@ const formatDate = (dateStr) => {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Load More Prospect Logs Button -->
+                        <div v-if="prospectLogs.length > visibleLogsCount" class="mt-4 text-center">
+                            <button
+                                @click="loadMoreLogs"
+                                class="inline-flex items-center gap-2 rounded-xl bg-indigo-50 px-6 py-2.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 border border-indigo-200 shadow-xs transition"
+                            >
+                                <span>📥 Muat 10 Status Dipindai Lagi</span>
+                                <span class="text-indigo-500">({{ visibleProspectLogs.length }} dari {{ prospectLogs.length }})</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div v-else class="rounded-lg bg-gray-50 p-8 text-center text-sm text-gray-500">
@@ -431,7 +457,7 @@ const formatDate = (dateStr) => {
 
                     <div v-if="liveThreadsPosts && liveThreadsPosts.length > 0" class="space-y-4">
                         <div
-                            v-for="(item, idx) in liveThreadsPosts"
+                            v-for="(item, idx) in visibleLiveThreadsPosts"
                             :key="idx"
                             class="rounded-lg border border-gray-200 p-4 transition hover:border-indigo-300"
                         >
@@ -454,6 +480,17 @@ const formatDate = (dateStr) => {
                             <p class="whitespace-pre-wrap text-sm text-gray-800 font-medium">
                                 {{ item.text || item.description || item.content || item }}
                             </p>
+                        </div>
+
+                        <!-- Load More Live Posts Button -->
+                        <div v-if="liveThreadsPosts.length > visibleLiveCount" class="mt-4 text-center">
+                            <button
+                                @click="loadMoreLive"
+                                class="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-6 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-200 border border-gray-300 shadow-xs transition"
+                            >
+                                <span>📥 Muat 10 Hasil Pencarian Lagi</span>
+                                <span class="text-gray-500">({{ visibleLiveThreadsPosts.length }} dari {{ liveThreadsPosts.length }})</span>
+                            </button>
                         </div>
                     </div>
                 </div>
