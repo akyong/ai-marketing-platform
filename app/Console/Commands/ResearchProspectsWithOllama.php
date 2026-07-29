@@ -78,8 +78,8 @@ class ResearchProspectsWithOllama extends Command
                     "DILARANG keras menjawab 'Maaf saya tidak bisa membantu', 'Sebagai AI', atau penolakan. Selalu berikan respon solutif ramah manusiawi maksimal 280 karakter.";
 
                 $this->info("⚡ Memproses Antrian Revisi Background untuk Log ID {$pLog->id} (@{$targetUsername})...");
-                $upgradedReply = $ollama->generate($prompt);
-                $upgradedReply = trim(str_replace(['**', '###', 'As an AI', 'Sebagai AI'], '', $upgradedReply));
+                $rawUpgraded = $ollama->generate($prompt);
+                $upgradedReply = OllamaService::cleanReplyDraft($rawUpgraded);
 
                 if (empty($upgradedReply) || str_contains($upgradedReply, 'tidak bisa membantu') || str_contains($upgradedReply, 'Maaf')) {
                     $upgradedReply = "Halo kak @{$targetUsername}! Daripada pusing urus potongan admin & komisi marketplace, yuk coba bikin toko online mandiri di Waperu.com 0% komisi, QRIS & COD langsung ke rekening sendiri. Semoga lancar terus usahanya kak!";
@@ -231,8 +231,8 @@ class ResearchProspectsWithOllama extends Command
             "PATUHI SELURUH MEMORI DARI PEMILIK BRAND DI ATAS.\n" .
             "DILARANG keras menjawab 'Maaf saya tidak bisa membantu', 'Sebagai AI', atau kata penolakan lainnya. Selalu berikan respon solutif ramah manusiawi.";
 
-        $draftedReply = $ollama->generate($replyPrompt);
-        $draftedReply = trim(str_replace(['**', '###', 'As an AI', 'Sebagai AI'], '', $draftedReply));
+        $rawDrafted = $ollama->generate($replyPrompt);
+        $draftedReply = OllamaService::cleanReplyDraft($rawDrafted);
 
         // If response is meta refusal or empty, provide a clean friendly default
         if (empty($draftedReply) || str_contains($draftedReply, 'tidak bisa membantu') || str_contains($draftedReply, 'Maaf')) {

@@ -146,11 +146,14 @@ class ThreadsRadarController extends Controller
             $targetUrl = $targetUrl ?: ($log?->metadata['target_url'] ?? null);
         }
 
+        // Clean any residual AI preamble text (e.g. "Berikut draf balasan...")
+        $cleanContent = OllamaService::cleanReplyDraft($request->content);
+
         $post = Post::create([
             'workspace_id' => $workspace->id,
             'brand_id' => $brand?->id,
             'title' => '🧵 Threads Reply Komen Seller - ' . now()->format('d M H:i'),
-            'content' => $request->content,
+            'content' => $cleanContent,
             'platforms' => ['threads'],
             'status' => 'scheduled',
             'scheduled_at' => now(),
@@ -165,7 +168,7 @@ class ThreadsRadarController extends Controller
 
         // 💬 Call Repliz Create Comment API (POST /public/content/{contentId}/comment) to post comment directly on target Threads post
         if (! empty($targetPostId) && $targetPostId !== 'DbSKJzAk4ww' && $targetPostId !== 'sample1') {
-            $published = $repliz->createComment($targetPostId, $request->content);
+            $published = $repliz->createComment($targetPostId, $cleanContent);
             if ($published) {
                 $post->update([
                     'status' => 'published',
