@@ -1,12 +1,18 @@
 (function () {
-    // Detect script attribute and server URL
-    var currentScript = document.currentScript || (function() {
+    // Safely detect script element across all async/defer loaders
+    var scriptTag = document.currentScript || (function() {
         var scripts = document.getElementsByTagName('script');
+        for (var i = scripts.length - 1; i >= 0; i--) {
+            if (scripts[i].getAttribute('data-widget-key') || (scripts[i].src && scripts[i].src.indexOf('/embed/chat.js') !== -1)) {
+                return scripts[i];
+            }
+        }
         return scripts[scripts.length - 1];
     })();
+    var currentScript = scriptTag;
 
-    var widgetKey = currentScript.getAttribute('data-widget-key') || '';
-    var serverUrl = currentScript.src.replace(/\/embed\/chat\.js.*$/, '');
+    var widgetKey = (scriptTag && scriptTag.getAttribute) ? (scriptTag.getAttribute('data-widget-key') || '') : '';
+    var serverUrl = (scriptTag && scriptTag.src) ? scriptTag.src.replace(/\/embed\/chat\.js.*$/, '') : 'https://gotiau.com';
 
     if (!widgetKey) {
         console.warn('[AI CS Widget] Missing data-widget-key attribute.');
@@ -151,7 +157,7 @@
     launcher.innerHTML = '💬';
     document.body.appendChild(launcher);
 
-    var customTitle = scriptTag ? scriptTag.getAttribute('data-title') : null;
+    var customTitle = currentScript ? currentScript.getAttribute('data-title') : null;
     var headerTitle = customTitle || 'Waperu Support';
 
     // Create Chat Window
