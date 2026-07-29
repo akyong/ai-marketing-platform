@@ -15,6 +15,17 @@ class ReplizService
     {
         $keyRecord = ApiKey::where('provider', 'repliz')->where('is_active', true)->first();
         $this->apiKey = $keyRecord ? $keyRecord->api_key : env('REPLIZ_API_KEY', '');
+
+        if (empty($this->apiKey)) {
+            Log::debug('ReplizService: No API key found (DB or ENV)');
+        } else {
+            $isBasicAuth = str_contains($this->apiKey, ':');
+            Log::debug('ReplizService: API key loaded', [
+                'source' => $keyRecord ? 'database (id=' . $keyRecord->id . ')' : 'env',
+                'auth_type' => $isBasicAuth ? 'Basic Auth (access:secret)' : 'Bearer Token',
+                'key_preview' => substr($this->apiKey, 0, 8) . '...',
+            ]);
+        }
     }
 
     /**
@@ -315,6 +326,7 @@ class ReplizService
                     $platform = strtolower($acc['type'] ?? $acc['platform'] ?? $acc['provider'] ?? '');
                     $id = (string) ($acc['_id'] ?? $acc['id'] ?? $acc['accountId'] ?? $acc['account_id'] ?? $acc['generatedId'] ?? '');
                     if (($platform === 'threads' || str_contains($platform, 'thread')) && ! empty(trim($id))) {
+                        Log::info("Repliz getThreadsAccountId: Found Threads account", ['id' => trim($id), 'platform' => $platform]);
                         return trim($id);
                     }
                 }
