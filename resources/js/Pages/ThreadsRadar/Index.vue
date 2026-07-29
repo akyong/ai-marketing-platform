@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     query: {
@@ -33,6 +34,8 @@ const scanForm = useForm({
     keyword: '',
 });
 
+const activePublishingId = ref(null);
+
 const handleSearch = () => {
     searchForm.get(route('threads-radar.index'), {
         preserveState: true,
@@ -44,6 +47,22 @@ const triggerScan = () => {
     scanForm.keyword = searchForm.query;
     scanForm.post(route('threads-radar.scan'), {
         preserveScroll: true,
+    });
+};
+
+const sendReply = (log) => {
+    const replyText = log.response_text || log.metadata?.drafted_reply;
+    if (!replyText) return;
+
+    activePublishingId.value = log.id;
+    router.post(route('threads-radar.reply-now'), {
+        content: replyText,
+        log_id: log.id,
+    }, {
+        preserveScroll: true,
+        onFinish: () => {
+            activePublishingId.value = null;
+        },
     });
 };
 
@@ -139,18 +158,18 @@ const formatDate = (dateStr) => {
                     </form>
                 </div>
 
-                <!-- 1-Minute Ollama Execution History & Drafted Replies -->
+                <!-- 1-Minute Ollama Execution History & Interactive Drafted Replies -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
                         <div>
                             <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
-                                <span>🤖 Log Eksekusi Ollama AI (Setiap 1 Menit) & Draft Balasan</span>
+                                <span>🤖 Log Eksekusi Ollama AI (Setiap 1 Menit) & Interaksi Balas 1-Klik</span>
                                 <span class="rounded bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-800">
                                     {{ prospectLogs.length }} Eksekusi Dicatat
                                 </span>
                             </h3>
                             <p class="text-xs text-gray-500">
-                                Menampilkan riwayat eksekusi otomatis 1-menit Ollama AI, kata kunci yang ditentukan AI, dan draft balasan yang disiapkan.
+                                Klik tombol "🚀 Kirim Balasan Ini Sekarang via Repliz" untuk langsung menerbitkan draft balasan Ollama AI ke Threads!
                             </p>
                         </div>
                     </div>
@@ -193,13 +212,27 @@ const formatDate = (dateStr) => {
                                 <p class="mt-1 whitespace-pre-wrap italic">"{{ log.metadata.scanned_posts[0] }}"</p>
                             </div>
 
-                            <!-- Drafted Reply prepared by Ollama -->
-                            <div class="rounded-lg bg-emerald-50 p-3.5 text-xs text-emerald-950 border border-emerald-200">
-                                <div class="flex items-center justify-between mb-1">
-                                    <strong class="font-bold text-emerald-900">💬 Draft Balasan Solutif Waperu (Dihasilkan Ollama AI):</strong>
-                                    <span class="rounded bg-emerald-200/80 px-2 py-0.5 text-[10px] font-extrabold uppercase text-emerald-900">Siap Dikirim / Balas</span>
+                            <!-- Interactive Drafted Reply prepared by Ollama -->
+                            <div class="rounded-lg bg-emerald-50 p-4 text-xs text-emerald-950 border border-emerald-200 shadow-sm">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5 pb-2 border-b border-emerald-200/80">
+                                    <strong class="font-bold text-emerald-900 text-sm flex items-center gap-1.5">
+                                        <span>💬 Draft Balasan Solutif Waperu (Local Ollama AI)</span>
+                                    </strong>
+
+                                    <span v-if="log.metadata?.is_published" class="rounded bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                                        ✓ TERKIRIM KE THREADS VIA REPLIZ
+                                    </span>
+                                    <button
+                                        v-else
+                                        @click="sendReply(log)"
+                                        :disabled="activePublishingId === log.id"
+                                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 disabled:opacity-50"
+                                    >
+                                        <span>🚀</span>
+                                        <span>{{ activePublishingId === log.id ? 'Mengirim ke Threads...' : 'Kirim Balasan Ini Sekarang via Repliz' }}</span>
+                                    </button>
                                 </div>
-                                <p class="whitespace-pre-wrap font-medium leading-relaxed">{{ log.response_text || log.metadata?.drafted_reply }}</p>
+                                <p class="whitespace-pre-wrap font-semibold leading-relaxed text-emerald-950 text-sm bg-white p-3 rounded border border-emerald-100">{{ log.response_text || log.metadata?.drafted_reply }}</p>
                             </div>
                         </div>
                     </div>

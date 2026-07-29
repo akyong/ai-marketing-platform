@@ -95,6 +95,7 @@ Route::middleware('auth')->group(function () {
     // Threads Social Radar & Prospecting Engine routes
     Route::get('/threads-radar', [\App\Http\Controllers\ThreadsRadarController::class, 'index'])->name('threads-radar.index');
     Route::post('/threads-radar/scan', [\App\Http\Controllers\ThreadsRadarController::class, 'triggerScan'])->name('threads-radar.scan');
+    Route::post('/threads-radar/reply-now', [\App\Http\Controllers\ThreadsRadarController::class, 'replyNow'])->name('threads-radar.reply-now');
 
     // AI Generation Routes
     Route::post('/ai/generate', function (Request $request, GeminiService $gemini) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AiGeneration;
+use App\Models\Post;
 use App\Services\OllamaService;
 use App\Services\ReplizService;
 use Illuminate\Http\Request;
@@ -53,5 +54,46 @@ class ThreadsRadarController extends Controller
         Artisan::call('ollama:research', $params);
 
         return redirect()->back()->with('success', "Riset Threads & Local Ollama AI Berhasil Dijalankan!");
+    }
+
+    public function replyNow(Request $request, ReplizService $repliz)
+    {
+        $request->validate([
+            'content' => 'required|string',
+            'log_id' => 'nullable|integer',
+        ]);
+
+        $user = $request->user();
+        $workspace = $user->currentWorkspace()->with('defaultBrand')->firstOrFail();
+        $brand = $workspace->brands->first();
+
+        $post = Post::create([
+            'workspace_id' => $workspace->id,
+            'brand_id' => $brand?->id,
+            'title' => '🧵 Threads Prospect Reply - ' . now()->format('d M H:i'),
+            'content' => $request->content,
+            'platforms' => ['threads'],
+            'status' => 'scheduled',
+            'scheduled_at' => now(),
+            'media_urls' => [],
+        ]);
+
+        $published = $repliz->publish($post);
+
+        if ($request->log_id) {
+            $log = AiGeneration::find($request->log_id);
+            if ($log) {
+                $metadata = $log->metadata ?? [];
+                $metadata['is_published'] = true;
+                $metadata['published_post_id'] = $post->id;
+                $log->update(['metadata' => $metadata]);
+            }
+        }
+
+        if ($published) {
+            return redirect()->back()->with('success', '🚀 Balasan Solutif Ollama AI Berhasil Diterbitkan ke Threads!');
+        }
+
+        return redirect()->back()->with('error', '⚠️ Balasan Gagal Diterbitkan: ' . ($post->error_message ?? 'Periksa akun Repliz Anda.'));
     }
 }
