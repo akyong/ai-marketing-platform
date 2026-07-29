@@ -429,12 +429,15 @@ const formatDate = (dateStr) => {
                                         <p class="whitespace-pre-wrap font-semibold text-xs leading-relaxed">{{ msg.content }}</p>
                                     </div>
 
-                                    <!-- Loading State Card while Ollama AI is thinking/revising -->
-                                    <div v-if="submittingFeedbackId === log.id" class="rounded-xl p-3.5 text-xs bg-indigo-900 text-white shadow-md border border-indigo-700 animate-pulse flex items-center gap-3">
+                                    <!-- Pending Background AI Revision Queue Card -->
+                                    <div v-if="log.metadata?.pending_ai_revision || submittingFeedbackId === log.id" class="rounded-xl p-3.5 text-xs bg-gradient-to-r from-amber-500 to-indigo-700 text-white shadow-md border border-amber-300 animate-pulse flex items-center gap-3 ml-6">
                                         <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent shrink-0"></div>
                                         <div>
-                                            <div class="font-bold text-xs text-indigo-200">🤖 Local Ollama AI Sedang Berpikir...</div>
-                                            <div class="text-[11px] text-indigo-300">Merevisi & meng-upgrade balasan komentar berdasarkan masukan terbaru Anda...</div>
+                                            <div class="font-bold text-xs text-amber-100 flex items-center gap-1.5">
+                                                <span>⏳ Masukan Anda Masuk ke Antrian Background Ollama AI</span>
+                                                <span class="rounded bg-amber-400 px-1.5 py-0.2 text-[9px] font-extrabold text-amber-950">QUEUED</span>
+                                            </div>
+                                            <div class="text-[11px] text-amber-100/90 mt-0.5">Local Ollama AI sedang membaca masukan Anda dan akan merevisi balasan ini secara otomatis di background (~1 menit).</div>
                                         </div>
                                     </div>
                                 </div>

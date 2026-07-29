@@ -46,6 +46,64 @@ class ResearchProspectsWithOllama extends Command
             ? implode("\n- ", $ownerLearnedRulesList)
             : 'Belum ada masukan khusus dari pemilik brand.';
 
+        // 🔄 0. Process any pending background AI revisions queued by Brand Owner
+        if ($workspace) {
+            $pendingLogs = AiGeneration::where('workspace_id', $workspace->id)
+                ->where('type', 'ollama_social_prospecting')
+                ->get()
+                ->filter(function ($item) {
+                    return ! empty($item->metadata['pending_ai_revision']);
+                });
+
+            foreach ($pendingLogs as $pLog) {
+                $metadata = $pLog->metadata ?? [];
+                $history = $metadata['conversation_threads'] ?? [];
+                $scannedPosts = $metadata['scanned_posts'] ?? [];
+                $scannedText = ! empty($scannedPosts) && is_array($scannedPosts) ? $scannedPosts[0] : $pLog->prompt;
+                $targetUsername = $metadata['username'] ?? 'seller';
+
+                $formattedHistory = '';
+                foreach ($history as $h) {
+                    $speaker = $h['role'] === 'user' ? 'PEMILIK BRAND (MASUKAN REVISI)' : 'OLLAMA DRAFT REVISION';
+                    $formattedHistory .= "{$speaker}: {$h['content']}\n";
+                }
+
+                $prompt = "Anda adalah tim resmi Waperu.com yang ramah, empati, dan solutif.\n" .
+                    "MEMORI BRAND WAPERU:\n{$brandKnowledge}\n\n" .
+                    "ATURAN MEMORI UMUM DARI PEMILIK BRAND:\n- {$ownerLearnedRulesText}\n\n" .
+                    "POSTINGAN TARGET SELLER (@{$targetUsername}):\n\"{$scannedText}\"\n\n" .
+                    "RIWAYAT REVISI & PERCAKAPAN DENGAN PEMILIK BRAND PADA STATUS INI:\n{$formattedHistory}\n\n" .
+                    "TUGAS KREATIF OLLAMA AI:\n" .
+                    "Tuliskan DRAFT BALASAN TERBARU (Versi Upgrade) yang mematuhi 100% masukan terbaru dari Pemilik Brand di atas.\n" .
+                    "DILARANG keras menjawab 'Maaf saya tidak bisa membantu', 'Sebagai AI', atau penolakan. Selalu berikan respon solutif ramah manusiawi maksimal 280 karakter.";
+
+                $this->info("⚡ Memproses Antrian Revisi Background untuk Log ID {$pLog->id} (@{$targetUsername})...");
+                $upgradedReply = $ollama->generate($prompt);
+                $upgradedReply = trim(str_replace(['**', '###', 'As an AI', 'Sebagai AI'], '', $upgradedReply));
+
+                if (empty($upgradedReply) || str_contains($upgradedReply, 'tidak bisa membantu') || str_contains($upgradedReply, 'Maaf')) {
+                    $upgradedReply = "Halo kak @{$targetUsername}! Daripada pusing urus potongan admin & komisi marketplace, yuk coba bikin toko online mandiri di Waperu.com 0% komisi, QRIS & COD langsung ke rekening sendiri. Semoga lancar terus usahanya kak!";
+                }
+
+                $history[] = [
+                    'role' => 'assistant',
+                    'content' => $upgradedReply,
+                    'created_at' => now()->toIso8601String(),
+                ];
+
+                $metadata['conversation_threads'] = $history;
+                $metadata['drafted_reply'] = $upgradedReply;
+                $metadata['pending_ai_revision'] = false;
+
+                $pLog->update([
+                    'response_text' => $upgradedReply,
+                    'metadata' => $metadata,
+                ]);
+
+                $this->info("✅ Sukses Meng-upgrade Draft Balasan Log ID {$pLog->id}!");
+            }
+        }
+
         $inputKeyword = $this->argument('keyword');
         $keywords = [];
 
