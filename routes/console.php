@@ -80,6 +80,18 @@ Artisan::command('workspace:fix-all', function () {
         }
     }
 
+    // Clean up & sanitize legacy target_url in AiGeneration
+    foreach (\App\Models\AiGeneration::all() as $gen) {
+        $meta = $gen->metadata;
+        if (is_array($meta) && isset($meta['target_url']) && str_contains($meta['target_url'], '/search?q=')) {
+            $username = $meta['username'] ?? 'seller_online';
+            $code = $meta['target_post_id'] ?? 'DbSKJzAk4ww';
+            if ($code === 'sample1' || empty($code)) $code = 'DbSKJzAk4ww';
+            $meta['target_url'] = "https://www.threads.net/@{$username}/post/{$code}";
+            $gen->update(['metadata' => $meta]);
+        }
+    }
+
     $this->info("✅ Berhasil menghubungkan {$users->count()} akun user, memperbarui Widget Key, & membersihkan teks postingan!");
 })->purpose('Menghubungkan seluruh akun user ke Waperu Workspace');
 

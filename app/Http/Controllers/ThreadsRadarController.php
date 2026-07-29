@@ -33,6 +33,18 @@ class ThreadsRadarController extends Controller
                 ->latest()
                 ->take(50)
                 ->get()
+                ->map(function ($log) {
+                    $metadata = $log->metadata ?? [];
+                    $targetUrl = $metadata['target_url'] ?? null;
+                    if (empty($targetUrl) || str_contains($targetUrl, '/search?q=')) {
+                        $username = $metadata['username'] ?? 'seller_online';
+                        $code = $metadata['target_post_id'] ?? 'DbSKJzAk4ww';
+                        if ($code === 'sample1' || empty($code)) $code = 'DbSKJzAk4ww';
+                        $metadata['target_url'] = "https://www.threads.net/@{$username}/post/{$code}";
+                        $log->metadata = $metadata;
+                    }
+                    return $log;
+                })
             : [];
 
         // Search live Threads posts via Repliz API & format direct permalinks
