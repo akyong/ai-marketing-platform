@@ -57,6 +57,11 @@ class WidgetChatController extends Controller
 
         $aiReply = $gemini->generate($csPrompt, $brand);
 
+        // Sanitize AI Reply if error prefix returned
+        if (empty($aiReply) || str_starts_with($aiReply, '⚠️') || str_starts_with($aiReply, '🔑')) {
+            $aiReply = "Halo! 👋 Terima kasih telah menghubungi Customer Support {$brandName}. Ada yang bisa saya bantu terkait layanan toko online, landing page, atau solusi jualan tanpa komisi di {$brandName}? Silakan tanyakan di sini! 😊";
+        }
+
         // Record AI Reply Message
         CustomerChatMessage::create([
             'session_id' => $session->id,
@@ -69,7 +74,9 @@ class WidgetChatController extends Controller
             'session_token' => $sessionToken,
             'reply' => $aiReply,
             'brand_name' => $brandName,
-        ]);
+        ])->header('Access-Control-Allow-Origin', '*')
+          ->header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+          ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     }
 
     /**
@@ -79,18 +86,21 @@ class WidgetChatController extends Controller
     {
         $sessionToken = $request->query('session_token');
         if (! $sessionToken) {
-            return response()->json(['messages' => []]);
+            return response()->json(['messages' => []])
+                ->header('Access-Control-Allow-Origin', '*');
         }
 
         $session = CustomerChatSession::where('session_token', $sessionToken)->first();
         if (! $session) {
-            return response()->json(['messages' => []]);
+            return response()->json(['messages' => []])
+                ->header('Access-Control-Allow-Origin', '*');
         }
 
         $messages = CustomerChatMessage::where('session_id', $session->id)
             ->orderBy('created_at', 'asc')
             ->get(['sender', 'message', 'created_at']);
 
-        return response()->json(['messages' => $messages]);
+        return response()->json(['messages' => $messages])
+            ->header('Access-Control-Allow-Origin', '*');
     }
 }

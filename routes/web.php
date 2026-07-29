@@ -125,7 +125,16 @@ Route::middleware('auth')->group(function () {
     })->name('ai.autonomous');
 });
 
-// Public Widget CS API
+// Public Widget CS API with CORS Preflight
+Route::options('/api/widget/chat', fn () => response('', 200)
+    ->header('Access-Control-Allow-Origin', '*')
+    ->header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'));
+Route::options('/api/widget/history', fn () => response('', 200)
+    ->header('Access-Control-Allow-Origin', '*')
+    ->header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'));
+
 Route::post('/api/widget/chat', [WidgetChatController::class, 'handleChat'])->name('widget.chat');
 Route::get('/api/widget/history', [WidgetChatController::class, 'getHistory'])->name('widget.history');
 
