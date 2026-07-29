@@ -267,22 +267,28 @@ class ReplizService
         return trim($text);
     }
 
+    public function getActiveApiKey(): string
+    {
+        $keyRecord = ApiKey::where('provider', 'repliz')->where('is_active', true)->first();
+        return $keyRecord ? $keyRecord->api_key : env('REPLIZ_API_KEY', '');
+    }
+
     /**
      * Research & Social Listening: Search Threads for posts matching keywords (Gold+ Repliz API feature)
      */
     public function searchThreadsContent(string $query): array
     {
-        if (empty($this->apiKey)) {
+        $apiKey = $this->getActiveApiKey();
+        if (empty($apiKey)) {
             return [];
         }
 
         try {
-            $headers = ['x-api-key' => $this->apiKey];
-            if (str_contains($this->apiKey, ':')) {
-                [$accessKey, $secretKey] = explode(':', $this->apiKey, 2);
-                $httpClient = Http::withHeaders($headers)->withBasicAuth(trim($accessKey), trim($secretKey));
+            if (str_contains($apiKey, ':')) {
+                [$accessKey, $secretKey] = explode(':', $apiKey, 2);
+                $httpClient = Http::withBasicAuth(trim($accessKey), trim($secretKey));
             } else {
-                $httpClient = Http::withHeaders($headers)->withToken($this->apiKey);
+                $httpClient = Http::withHeaders(['x-api-key' => $apiKey])->withToken($apiKey);
             }
 
             $response = $httpClient->get('https://api.repliz.com/public/research/threads/content/search', [
@@ -294,11 +300,11 @@ class ReplizService
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['docs'] ?? $data['data'] ?? $data['items'] ?? $data['results'] ?? $data['result'] ?? [];
-            } else {
-                Log::warning("Repliz Threads Research API HTTP {$response->status()}", ['body' => $response->body()]);
             }
+
+            Log::warning("Repliz Threads Research API HTTP {$response->status()}", ['body' => $response->body()]);
         } catch (\Exception $e) {
-            Log::warning("Repliz Threads Research Error: " . $e->getMessage());
+            Log::warning("Repliz Threads Research Exception: " . $e->getMessage());
         }
 
         return [];
