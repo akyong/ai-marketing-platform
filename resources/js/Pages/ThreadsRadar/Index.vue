@@ -166,6 +166,12 @@ const formatDate = (dateStr) => {
                                     <span class="rounded bg-indigo-600 px-2.5 py-0.5 text-xs font-bold text-white">
                                         ⚡ Eksekusi 1-Menit
                                     </span>
+                                    <span v-if="log.metadata?.is_duplicate" class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900 border border-amber-300">
+                                        🛡️ Anti-Repeat (Sudah Pernah Diproses)
+                                    </span>
+                                    <span v-else class="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-900 border border-emerald-300">
+                                        🔥 Postingan Unik Baru
+                                    </span>
                                     <span class="text-xs font-semibold text-indigo-900">
                                         {{ log.prompt }}
                                     </span>

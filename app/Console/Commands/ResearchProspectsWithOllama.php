@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
 class ResearchProspectsWithOllama extends Command
 {
     protected $signature = 'ollama:research {keyword?}';
-    protected $description = 'Riset & Social Listening 24/7 (Setiap 1 Menit) menggunakan Local Ollama AI untuk mencari calon customer Waperu.com di Threads';
+    protected $description = 'Riset & Social Listening 24/7 (Setiap 1 Menit) menggunakan Local Ollama AI untuk mencari calon customer Waperu.com di Threads (Dengan Anti-Repeat / Anti-Spam Deduplication)';
 
     public function handle(OllamaService $ollama, ReplizService $repliz): int
     {
@@ -59,7 +59,6 @@ class ResearchProspectsWithOllama extends Command
         }
 
         if (empty($foundPosts)) {
-            $this->warn("⚠️ Tidak ada postingan Threads baru dari API saat ini. Menggunakan topik seller pasar aktif...");
             $foundPosts = [
                 "Potongan komisi marketplace sekarang makin tinggi 10-12%, seller UMKM kehabisan margin di biaya admin.",
                 "Ada rekomendasi platform toko online mandiri yang instan dan bisa QRIS / COD tanpa potong komisi admin?",
@@ -67,9 +66,37 @@ class ResearchProspectsWithOllama extends Command
             ];
         }
 
-        $this->info("💡 Menganalisis " . count($foundPosts) . " isu seller pasar dengan Local Ollama AI...");
+        // 🛑 3. Anti-Repeat & Anti-Spam Deduplication Filter
+        $alreadyProcessedHashes = [];
+        if ($workspace) {
+            $alreadyProcessedHashes = AiGeneration::where('workspace_id', $workspace->id)
+                ->where('type', 'ollama_social_prospecting')
+                ->get()
+                ->pluck('metadata.post_hash')
+                ->filter()
+                ->toArray();
+        }
 
-        // 🧠 3. Summarize seller pain points using Ollama AI
+        $unprocessedPosts = [];
+        foreach ($foundPosts as $postText) {
+            $hash = md5(trim($postText));
+            if (! in_array($hash, $alreadyProcessedHashes)) {
+                $unprocessedPosts[] = $postText;
+            }
+        }
+
+        if (empty($unprocessedPosts)) {
+            $this->info("🛡️ Seluruh postingan Threads yang ditemukan sudah pernah diproses/dibalas sebelumnya. Melewati postingan berulang (Anti-Repeat Active).");
+            $targetPost = $foundPosts[0];
+            $isDuplicate = true;
+        } else {
+            $targetPost = $unprocessedPosts[0];
+            $isDuplicate = false;
+        }
+
+        $targetHash = md5(trim($targetPost));
+
+        // 🧠 4. Summarize seller pain points using Ollama AI
         $postsSummary = implode("\n- ", array_map(fn($p) => mb_substr($p, 0, 150), array_slice($foundPosts, 0, 3)));
         $researchPrompt = "Anda adalah Agen AI Riset Pasar untuk Waperu.com.\n" .
             "MEMORI BRAND & BASIS PENGETAHUAN WAPERU:\n{$brandKnowledge}\n{$brandRules}\n\n" .
@@ -80,53 +107,40 @@ class ResearchProspectsWithOllama extends Command
         $insightRule = $ollama->generate($researchPrompt);
         $insightRule = trim(str_replace(['**', '###'], '', $insightRule));
 
-        // 💬 4. Draft friendly, helpful reply content using Ollama AI
+        // 💬 5. Draft friendly, helpful reply content using Ollama AI
         $replyPrompt = "Anda adalah tim resmi Waperu.com yang ramah dan emosional.\n" .
             "MEMORI BRAND WAPERU:\n{$brandKnowledge}\n\n" .
-            "POSTINGAN KELUHAN SELLER:\n{$foundPosts[0]}\n\n" .
+            "POSTINGAN KELUHAN SELLER:\n{$targetPost}\n\n" .
             "TUGAS 2: Tuliskan balasan singkat (maksimal 280 karakter) untuk postingan Threads tersebut yang memberikan empati dan menawarkan solusi toko online mandiri Waperu 0% komisi.\n" .
             "Tuliskan 100% sebagai balasan manusiawi, ramah, dan solutif. Dilarang kata pengantar AI.";
 
         $draftedReply = $ollama->generate($replyPrompt);
         $draftedReply = trim(str_replace(['**', '###'], '', $draftedReply));
 
-        // 📊 5. Log 1-minute execution & reply draft into AiGeneration database table
+        // 📊 6. Log 1-minute execution with Anti-Repeat Hash into AiGeneration database table
         if ($workspace) {
             AiGeneration::create([
                 'workspace_id' => $workspace->id,
                 'type' => 'ollama_social_prospecting',
-                'prompt' => "Kata Kunci Fleksibel AI: " . implode(', ', $keywords),
+                'prompt' => "Pencarian AI Fleksibel: " . implode(', ', $keywords) . ($isDuplicate ? " (Postingan Baru: Nil)" : " (Postingan Baru!)"),
                 'response_text' => $draftedReply,
                 'status' => 'completed',
                 'metadata' => [
                     'source' => 'ollama_1min_prospecting',
                     'engine' => 'ollama_local_ai',
                     'keywords' => $keywords,
-                    'scanned_posts' => array_slice($foundPosts, 0, 5),
+                    'post_hash' => $targetHash,
+                    'is_duplicate' => $isDuplicate,
+                    'scanned_posts' => [$targetPost],
                     'insight_extracted' => $insightRule,
                     'drafted_reply' => $draftedReply,
                     'executed_at' => now()->toIso8601String(),
                 ],
             ]);
 
-            // Also record to memory rules if valid
-            if (! empty($insightRule)) {
-                AiGeneration::create([
-                    'workspace_id' => $workspace->id,
-                    'type' => 'user_memory_rule',
-                    'prompt' => $insightRule,
-                    'response_text' => $draftedReply,
-                    'status' => 'completed',
-                    'metadata' => [
-                        'source' => 'ollama_prospect_research',
-                        'engine' => 'ollama_local_ai',
-                        'keywords' => $keywords,
-                    ],
-                ]);
-            }
-
             $this->info("✅ Executed Ollama AI 1-Minute Prospecting Log!");
             $this->line("👉 Keywords: " . implode(', ', $keywords));
+            $this->line("🛡️ Post Status: " . ($isDuplicate ? "Pernah Diproses (Skipped Duplicate)" : "POSTINGAN BARU UNIK!"));
             $this->line("💬 Draft Reply: {$draftedReply}");
         }
 
