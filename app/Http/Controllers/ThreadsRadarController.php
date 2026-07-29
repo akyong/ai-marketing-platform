@@ -7,6 +7,7 @@ use App\Models\Post;
 use App\Services\OllamaService;
 use App\Services\ReplizService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -47,8 +48,11 @@ class ThreadsRadarController extends Controller
                 })
             : [];
 
-        // Search live Threads posts via Repliz API & format direct permalinks
-        $rawLivePosts = $repliz->searchThreadsContent($query);
+        // Search live Threads posts via Repliz API & format direct permalinks (cached for 60s for speed)
+        $cacheKey = 'threads_radar_search_' . md5($query);
+        $rawLivePosts = Cache::remember($cacheKey, 60, function () use ($repliz, $query) {
+            return $repliz->searchThreadsContent($query);
+        });
         $liveThreadsPosts = array_map(function ($res) use ($query) {
             if (! is_array($res)) {
                 return [
