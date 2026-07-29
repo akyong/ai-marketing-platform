@@ -71,12 +71,16 @@ class ThreadsRadarController extends Controller
             ];
         }, $rawLivePosts);
 
+        $activeKey = $repliz->getActiveApiKey();
+        $hasReplizKey = ! empty($activeKey) && $activeKey !== 'repliz_live_dummy';
+
         return Inertia::render('ThreadsRadar/Index', [
             'query' => $query,
             'insights' => $insights,
             'prospectLogs' => $prospectLogs,
             'lastExecutedAt' => $prospectLogs->first()?->created_at?->toIso8601String(),
             'liveThreadsPosts' => $liveThreadsPosts,
+            'hasReplizKey' => $hasReplizKey,
         ]);
     }
 

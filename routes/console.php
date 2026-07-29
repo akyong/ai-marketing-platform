@@ -80,6 +80,13 @@ Artisan::command('workspace:fix-all', function () {
         }
     }
 
+    // Delete legacy dummy log records containing hardcoded fallback texts
+    \App\Models\AiGeneration::where('type', 'ollama_social_prospecting')
+        ->where(function ($q) {
+            $q->where('response_text', 'like', '%Potongan komisi marketplace%')
+              ->orWhere('prompt', 'like', '%Potongan komisi marketplace%');
+        })->delete();
+
     // Clean up & sanitize legacy target_url in AiGeneration
     foreach (\App\Models\AiGeneration::all() as $gen) {
         $meta = $gen->metadata;

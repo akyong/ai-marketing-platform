@@ -24,6 +24,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    hasReplizKey: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const searchForm = useForm({
@@ -107,6 +111,26 @@ const formatDate = (dateStr) => {
 
         <div class="py-6">
             <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <!-- Warning if Repliz API Key is missing -->
+                <div v-if="!hasReplizKey" class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">⚠️</span>
+                        <div>
+                            <h4 class="font-extrabold text-sm">Repliz API Key Belum Dikonfigurasi / Belum Aktif</h4>
+                            <p class="text-xs text-amber-800">
+                                Agar Ollama AI dapat mencari status seller Threads secara live dan mengekstrak link postingan asli, silakan masukkan Repliz API Key Anda di menu API Keys.
+                            </p>
+                        </div>
+                    </div>
+                    <a
+                        :href="route('api-keys.index')"
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-700 transition shadow shrink-0"
+                    >
+                        <span>🔑 Atur Repliz API Key Sekarang</span>
+                        <span>↗</span>
+                    </a>
+                </div>
+
                 <!-- 1-Minute Live Status Ticker Banner -->
                 <div class="rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 text-white shadow-lg border border-indigo-800">
                     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

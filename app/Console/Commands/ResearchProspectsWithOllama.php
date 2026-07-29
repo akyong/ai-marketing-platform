@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
 class ResearchProspectsWithOllama extends Command
 {
     protected $signature = 'ollama:research {keyword?}';
-    protected $description = 'Riset & Social Listening 24/7 (Setiap 1 Menit) menggunakan Local Ollama AI untuk mencari calon customer Waperu.com di Threads (Menyimpan Direct Link Post Threads)';
+    protected $description = 'Riset & Social Listening 24/7 (Setiap 1 Menit) menggunakan Local Ollama AI untuk memindai postingan Threads live via Repliz API';
 
     public function handle(OllamaService $ollama, ReplizService $repliz): int
     {
@@ -44,6 +44,26 @@ class ResearchProspectsWithOllama extends Command
             }
         }
 
+        $apiKey = $repliz->getActiveApiKey();
+        if (empty($apiKey) || $apiKey === 'repliz_live_dummy') {
+            $msg = "⚠️ Repliz API Key belum diatur / belum aktif. Silakan tambahkan Repliz API Key Anda di menu API Key agar AI dapat mencari postingan Threads secara live!";
+            $this->warn($msg);
+            if ($workspace) {
+                AiGeneration::create([
+                    'workspace_id' => $workspace->id,
+                    'type' => 'ollama_social_prospecting',
+                    'prompt' => 'Peringatan Repliz API Key Belum Aktif',
+                    'response_text' => $msg,
+                    'status' => 'failed',
+                    'metadata' => [
+                        'error' => 'REPLIZ_API_KEY_MISSING',
+                        'executed_at' => now()->toIso8601String(),
+                    ],
+                ]);
+            }
+            return Command::SUCCESS;
+        }
+
         $this->info("🤖 Memulai Riset Ollama AI (Keyword Fleksibel AI: " . implode(', ', $keywords) . ")");
 
         // 🔍 2. Search Threads content via Repliz API & extract exact real Threads post URLs
@@ -70,7 +90,7 @@ class ResearchProspectsWithOllama extends Command
         }
 
         if (empty($foundPostObjects)) {
-            $this->warn("⚠️ Tidak ditemukan postingan baru di Threads saat ini untuk kata kunci: " . implode(', ', $keywords));
+            $this->warn("⚠️ Tidak ditemukan postingan Threads baru saat ini untuk kata kunci: " . implode(', ', $keywords));
             return Command::SUCCESS;
         }
 
