@@ -27,7 +27,14 @@ class WidgetChatController extends Controller
         $workspace = Workspace::where('widget_key', $validated['widget_key'])->with('defaultBrand')->first();
 
         if (! $workspace) {
-            return response()->json(['error' => 'Widget Key tidak valid atau tidak ditemukan.'], 404);
+            $workspace = Workspace::first();
+        }
+
+        if (! $workspace) {
+            return response()->json([
+                'success' => false,
+                'reply' => 'Halo! 👋 CS AI Waperu sedang disiapkan. Silakan coba kembali sejenak lagi.',
+            ])->header('Access-Control-Allow-Origin', '*');
         }
 
         $brand = $workspace->brands->first();

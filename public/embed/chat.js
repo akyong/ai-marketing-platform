@@ -243,7 +243,7 @@
 
             var aiMsg = document.createElement('div');
             aiMsg.className = 'aics-msg aics-msg-ai';
-            aiMsg.innerText = data.reply || 'Mohon maaf, terjadi kendala saat merespon.';
+            aiMsg.innerText = data.reply || data.error || 'Mohon maaf, terjadi kendala saat merespon.';
             bodyBox.appendChild(aiMsg);
             bodyBox.scrollTop = bodyBox.scrollHeight;
         })
