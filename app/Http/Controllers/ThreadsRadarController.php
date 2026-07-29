@@ -26,21 +26,32 @@ class ThreadsRadarController extends Controller
                 ->get()
             : [];
 
+        $prospectLogs = $workspace
+            ? AiGeneration::where('workspace_id', $workspace->id)
+                ->where('type', 'ollama_social_prospecting')
+                ->latest()
+                ->take(50)
+                ->get()
+            : [];
+
         // Search live Threads posts via Repliz API
         $liveThreadsPosts = $repliz->searchThreadsContent($query);
 
         return Inertia::render('ThreadsRadar/Index', [
             'query' => $query,
             'insights' => $insights,
+            'prospectLogs' => $prospectLogs,
+            'lastExecutedAt' => $prospectLogs->first()?->created_at?->toIso8601String(),
             'liveThreadsPosts' => $liveThreadsPosts,
         ]);
     }
 
     public function triggerScan(Request $request)
     {
-        $keyword = $request->input('keyword', 'ecommerce');
-        Artisan::call('ollama:research', ['keyword' => $keyword]);
+        $keyword = $request->input('keyword');
+        $params = ! empty($keyword) ? ['keyword' => $keyword] : [];
+        Artisan::call('ollama:research', $params);
 
-        return redirect()->back()->with('success', "Riset Threads & Local Ollama AI untuk kata kunci '{$keyword}' Berhasil Dijalankan!");
+        return redirect()->back()->with('success', "Riset Threads & Local Ollama AI Berhasil Dijalankan!");
     }
 }

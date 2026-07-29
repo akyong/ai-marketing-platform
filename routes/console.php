@@ -12,8 +12,8 @@ Schedule::command('ai:daily-marketing')->dailyAt('07:00');
 // Run Threads Social Radar Listening every 4 hours
 Schedule::command('threads:listen')->everyFourHours();
 
-// Run Local Ollama AI 24/7 Prospect Research & Customer Discovery every 10 minutes
-Schedule::command('ollama:research')->everyTenMinutes();
+// Run Local Ollama AI 24/7 Prospect Research & Customer Discovery every minute (1-min auto run)
+Schedule::command('ollama:research')->everyMinute();
 
 // Auto-publish scheduled social media posts every minute via Repliz
 Schedule::command('posts:publish-scheduled')->everyMinute();
