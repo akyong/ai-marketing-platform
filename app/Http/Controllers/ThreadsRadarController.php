@@ -90,11 +90,25 @@ class ThreadsRadarController extends Controller
 
     public function triggerScan(Request $request)
     {
-        $keyword = $request->input('keyword');
-        $params = ! empty($keyword) ? ['keyword' => $keyword] : [];
-        Artisan::call('ollama:research', $params);
+        @set_time_limit(120);
 
-        return redirect()->back()->with('success', "Riset Threads & Local Ollama AI Berhasil Dijalankan!");
+        $rawKeyword = $request->input('keyword');
+        $keyword = is_string($rawKeyword) ? trim($rawKeyword) : null;
+        $params = ! empty($keyword) ? ['keyword' => $keyword] : [];
+
+        try {
+            // Clear radar search cache so fresh live posts are fetched
+            if (! empty($keyword)) {
+                Cache::forget('threads_radar_search_' . md5($keyword));
+            }
+
+            Artisan::call('ollama:research', $params);
+
+            return redirect()->back()->with('success', "⚡ Riset Threads & Local Ollama AI Berhasil Diterbitkan!");
+        } catch (\Throwable $e) {
+            Log::error("ThreadsRadar triggerScan Exception: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', "⚠️ Eksekusi Riset Terkendala: " . $e->getMessage());
+        }
     }
 
     public function replyNow(Request $request, ReplizService $repliz)
