@@ -62,6 +62,22 @@ const deletePost = (postId) => {
         router.delete(route('posts.destroy', postId), { preserveScroll: true });
     }
 };
+
+const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(date) + ' WIB';
+    } catch (e) {
+        return dateString;
+    }
+};
 </script>
 
 <template>
@@ -260,6 +276,14 @@ const deletePost = (postId) => {
 
                             <div v-if="post.error_message" class="mt-2 rounded bg-red-50 p-3 text-xs text-red-700 border border-red-200">
                                 <strong>⚠️ Detail Error Repliz:</strong> {{ post.error_message }}
+                            </div>
+
+                            <!-- Scheduled / Published Broadcast Timestamp -->
+                            <div v-if="post.scheduled_at" class="mt-3 flex items-center gap-2 rounded-md bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-900 border border-amber-200">
+                                ⏰ <span>Jadwal Tayang Otomatis: <strong class="text-amber-950 font-bold underline">{{ formatDate(post.scheduled_at) }}</strong></span>
+                            </div>
+                            <div v-else-if="post.published_at" class="mt-3 flex items-center gap-2 rounded-md bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-900 border border-emerald-200">
+                                🎉 <span>Telah Tayang Pada: <strong class="text-emerald-950 font-bold">{{ formatDate(post.published_at) }}</strong></span>
                             </div>
 
                             <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
