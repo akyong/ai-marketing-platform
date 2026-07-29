@@ -144,4 +144,46 @@ class ThreadsRadarController extends Controller
 
         return redirect()->back()->with('error', '⚠️ Balasan Gagal Diterbitkan: ' . ($post->error_message ?? 'Periksa akun Repliz Anda.'));
     }
+
+    public function saveFeedback(Request $request)
+    {
+        $request->validate([
+            'feedback' => 'required|string|max:1000',
+        ]);
+
+        $user = $request->user();
+        $workspace = $user->currentWorkspace;
+
+        if (! $workspace) {
+            return redirect()->back()->with('error', 'Workspace tidak ditemukan.');
+        }
+
+        $feedbackText = trim($request->feedback);
+
+        AiGeneration::create([
+            'workspace_id' => $workspace->id,
+            'user_id' => $user->id,
+            'type' => 'user_memory_rule',
+            'prompt' => '🧠 Masukan & Evaluasi Pemilik Brand ke Ollama AI',
+            'response_text' => $feedbackText,
+            'status' => 'completed',
+            'metadata' => [
+                'source' => 'threads_radar_owner_feedback',
+                'log_id' => $request->input('log_id'),
+                'created_at' => now()->toIso8601String(),
+            ],
+        ]);
+
+        return redirect()->back()->with('success', "🧠 Memori Pembelajaran Disimpan! Ollama AI akan selalu mengingat aturan ini: \"{$feedbackText}\"");
+    }
+
+    public function deleteFeedback(AiGeneration $aiGeneration)
+    {
+        if ($aiGeneration->type === 'user_memory_rule') {
+            $aiGeneration->delete();
+            return redirect()->back()->with('success', '🗑️ Aturan memori pembelajaran AI berhasil dihapus.');
+        }
+
+        return redirect()->back()->with('error', 'Item bukan aturan memori.');
+    }
 }

@@ -39,6 +39,10 @@ const scanForm = useForm({
 });
 
 const activePublishingId = ref(null);
+const feedbackInputs = ref({});
+const newMemoryRule = ref('');
+const submittingFeedbackId = ref(null);
+const submittingRule = ref(false);
 
 const handleSearch = () => {
     searchForm.get(route('threads-radar.index'), {
@@ -70,6 +74,50 @@ const sendReply = (log) => {
             activePublishingId.value = null;
         },
     });
+};
+
+const submitLogFeedback = (logId) => {
+    const feedback = feedbackInputs.value[logId];
+    if (!feedback || !feedback.trim()) return;
+
+    submittingFeedbackId.value = logId;
+    router.post(route('threads-radar.feedback'), {
+        feedback: feedback.trim(),
+        log_id: logId,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            feedbackInputs.value[logId] = '';
+        },
+        onFinish: () => {
+            submittingFeedbackId.value = null;
+        },
+    });
+};
+
+const submitDirectRule = () => {
+    if (!newMemoryRule.value || !newMemoryRule.value.trim()) return;
+
+    submittingRule.value = true;
+    router.post(route('threads-radar.feedback'), {
+        feedback: newMemoryRule.value.trim(),
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            newMemoryRule.value = '';
+        },
+        onFinish: () => {
+            submittingRule.value = false;
+        },
+    });
+};
+
+const deleteMemoryRule = (ruleId) => {
+    if (confirm('Apakah Anda yakin ingin menghapus aturan memori ini?')) {
+        router.delete(route('threads-radar.delete-feedback', ruleId), {
+            preserveScroll: true,
+        });
+    }
 };
 
 const formatDate = (dateStr) => {
@@ -157,6 +205,58 @@ const formatDate = (dateStr) => {
                                 <span>{{ scanForm.processing ? 'Sedang Eksekusi Ollama...' : 'Picu Eksekusi Manual Now' }}</span>
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 🧠 Self-Learning Ollama AI Memory Rules Card -->
+                <div class="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-indigo-50/70 p-5 shadow-sm">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-indigo-100 pb-3 mb-3">
+                        <div>
+                            <h3 class="font-extrabold text-indigo-950 text-base flex items-center gap-2">
+                                <span>🧠 Memori Self-Learning Ollama AI ({{ insights.filter(i => i.type === 'user_memory_rule').length }} Aturan Diajarkan)</span>
+                            </h3>
+                            <p class="text-xs text-indigo-700">
+                                Berikan arahan khusus kepada Ollama AI. AI akan secara otomatis mengingat aturan ini dalam setiap eksekusi prospeksi Threads berikutnya.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Add Direct Rule Form -->
+                    <form @submit.prevent="submitDirectRule" class="flex gap-2 mb-3">
+                        <input
+                            v-model="newMemoryRule"
+                            type="text"
+                            placeholder="Ketik instruksi baru untuk Ollama... Misal: Selalu gunakan nada bahasa ramah dan sebutkan fitur 0% komisi Waperu."
+                            class="w-full rounded-lg border-indigo-300 text-xs shadow-sm focus:border-indigo-600 focus:ring-indigo-600 bg-white"
+                        />
+                        <button
+                            type="submit"
+                            :disabled="submittingRule || !newMemoryRule.trim()"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm transition disabled:opacity-40 shrink-0"
+                        >
+                            <span>🧠 Simpan Aturan Memori</span>
+                        </button>
+                    </form>
+
+                    <!-- Active Rules List -->
+                    <div v-if="insights.filter(i => i.type === 'user_memory_rule').length > 0" class="flex flex-wrap gap-2">
+                        <div
+                            v-for="rule in insights.filter(i => i.type === 'user_memory_rule')"
+                            :key="rule.id"
+                            class="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-indigo-900 border border-indigo-200 shadow-xs"
+                        >
+                            <span>📌 "{{ rule.response_text }}"</span>
+                            <button
+                                @click="deleteMemoryRule(rule.id)"
+                                title="Hapus Aturan Memori Ini"
+                                class="text-gray-400 hover:text-red-600 font-bold ml-1"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs italic text-indigo-500">
+                        Belum ada aturan memori khusus. Berikan instruksi di atas atau beri masukan pada log prospek di bawah untuk mengajari Ollama AI!
                     </div>
                 </div>
 
@@ -285,6 +385,32 @@ const formatDate = (dateStr) => {
                                     </div>
                                 </div>
                                 <p class="whitespace-pre-wrap font-semibold leading-relaxed text-emerald-950 text-sm bg-white p-3 rounded border border-emerald-100">{{ log.response_text || log.metadata?.drafted_reply }}</p>
+
+                                <!-- 🧠 Brand Owner Feedback & Self-Learning Input -->
+                                <div class="mt-3.5 pt-3 border-t border-emerald-200/60">
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <label class="text-[11px] font-bold text-emerald-900 flex items-center gap-1.5">
+                                            <span>🧠 Beri Masukan ke Ollama AI agar Self-Learning (Ingat di Memori):</span>
+                                        </label>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input
+                                            v-model="feedbackInputs[log.id]"
+                                            type="text"
+                                            placeholder="Contoh: Jangan bilang komisi 0% saja, sebutkan gratis buat website dan fitur QRIS tanpa potong admin..."
+                                            class="w-full rounded-lg border-emerald-300 text-xs shadow-sm focus:border-emerald-600 focus:ring-emerald-600 bg-white"
+                                            @keydown.enter.prevent="submitLogFeedback(log.id)"
+                                        />
+                                        <button
+                                            type="button"
+                                            @click="submitLogFeedback(log.id)"
+                                            :disabled="submittingFeedbackId === log.id || !feedbackInputs[log.id]"
+                                            class="inline-flex items-center gap-1 rounded-lg bg-indigo-700 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-800 disabled:opacity-40 shrink-0"
+                                        >
+                                            <span>🧠 Ajarkan Rule</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

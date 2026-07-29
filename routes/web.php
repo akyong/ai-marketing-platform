@@ -96,6 +96,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/threads-radar', [\App\Http\Controllers\ThreadsRadarController::class, 'index'])->name('threads-radar.index');
     Route::post('/threads-radar/scan', [\App\Http\Controllers\ThreadsRadarController::class, 'triggerScan'])->name('threads-radar.scan');
     Route::post('/threads-radar/reply-now', [\App\Http\Controllers\ThreadsRadarController::class, 'replyNow'])->name('threads-radar.reply-now');
+    Route::post('/threads-radar/feedback', [\App\Http\Controllers\ThreadsRadarController::class, 'saveFeedback'])->name('threads-radar.feedback');
+    Route::delete('/threads-radar/feedback/{aiGeneration}', [\App\Http\Controllers\ThreadsRadarController::class, 'deleteFeedback'])->name('threads-radar.delete-feedback');
 
     // AI Generation Routes
     Route::post('/ai/generate', function (Request $request, GeminiService $gemini) {

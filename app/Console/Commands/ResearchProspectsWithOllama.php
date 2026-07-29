@@ -29,6 +29,22 @@ class ResearchProspectsWithOllama extends Command
             : 'Waperu.com: Platform Toko Online Mandiri 0% Komisi, QRIS & COD langsung ke rekening.';
         $brandRules = $brand?->custom_rules ?? '';
 
+        // 🧠 Load active self-learning memory rules taught by Brand Owner
+        $ownerLearnedRulesList = [];
+        if ($workspace) {
+            $ownerLearnedRulesList = AiGeneration::where('workspace_id', $workspace->id)
+                ->where('type', 'user_memory_rule')
+                ->latest()
+                ->take(15)
+                ->pluck('response_text')
+                ->filter()
+                ->toArray();
+        }
+
+        $ownerLearnedRulesText = ! empty($ownerLearnedRulesList)
+            ? implode("\n- ", $ownerLearnedRulesList)
+            : 'Belum ada masukan khusus dari pemilik brand.';
+
         $inputKeyword = $this->argument('keyword');
         $keywords = [];
 
@@ -38,6 +54,7 @@ class ResearchProspectsWithOllama extends Command
             // 🤖 1. Ask Local Ollama AI to dynamically determine search keywords based on Brand Memory
             $keywordPrompt = "Anda adalah Asisten Marketing Waperu.com.\n" .
                 "BASIS PENGETAHUAN WAPERU:\n{$brandKnowledge}\n\n" .
+                "MEMORI & PETUNJUK DARI PEMILIK BRAND:\n- {$ownerLearnedRulesText}\n\n" .
                 "TUGAS: Berikan 3 kata kunci pencarian singkat (1-2 kata per keyword) dipisah koma untuk mencari postingan keluhan seller online / toko online di Threads.\n" .
                 "CONTOH OUTPUT: komisi marketplace, potongan admin, toko online mandiri\n" .
                 "Output HANYA kata kunci dipisah koma, TANPA kata pengantar.";
@@ -149,8 +166,10 @@ class ResearchProspectsWithOllama extends Command
         // 💬 5. Draft friendly, helpful reply content using Ollama AI
         $replyPrompt = "Anda adalah tim resmi Waperu.com yang ramah dan emosional.\n" .
             "MEMORI BRAND WAPERU:\n{$brandKnowledge}\n\n" .
+            "ATURAN MEMORI KHUSUS DARI PEMILIK BRAND:\n- {$ownerLearnedRulesText}\n\n" .
             "POSTINGAN KELUHAN SELLER (@{$targetUsername}):\n{$targetText}\n\n" .
             "TUGAS 2: Tuliskan balasan singkat (maksimal 280 karakter) untuk postingan Threads tersebut yang memberikan empati dan menawarkan solusi toko online mandiri Waperu 0% komisi.\n" .
+            "PATUHI SELURUH MEMORI DARI PEMILIK BRAND DI ATAS.\n" .
             "Tuliskan 100% sebagai balasan manusiawi, ramah, dan solutif. Dilarang kata pengantar AI.";
 
         $draftedReply = $ollama->generate($replyPrompt);
