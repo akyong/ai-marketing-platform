@@ -46,24 +46,18 @@ class ResearchProspectsWithOllama extends Command
 
         $this->info("🤖 Memulai Riset Ollama AI (Keyword Fleksibel AI: " . implode(', ', $keywords) . ")");
 
-        // 🔍 2. Search Threads content via Repliz API & construct exact direct Threads URLs
+        // 🔍 2. Search Threads content via Repliz API & extract exact real Threads post URLs
         $foundPostObjects = [];
         foreach ($keywords as $kw) {
             $results = $repliz->searchThreadsContent($kw);
             foreach ($results as $res) {
                 if (! is_array($res)) continue;
-                $text = $res['text'] ?? $res['description'] ?? $res['content'] ?? '';
+                $text = $res['text'] ?? $res['description'] ?? $res['content'] ?? $res['caption'] ?? '';
                 if (empty($text)) continue;
 
-                $username = $res['user']['username'] ?? $res['user_name'] ?? $res['owner']['username'] ?? $res['author']['username'] ?? 'seller_online';
-                $code = $res['code'] ?? $res['shortcode'] ?? $res['pk'] ?? $res['id'] ?? 'DbSKJzAk4ww';
-                $permalink = $res['permalink'] ?? $res['url'] ?? $res['link'] ?? null;
-
-                if (! empty($permalink) && str_starts_with($permalink, 'http')) {
-                    $targetUrl = str_replace('threads.com', 'threads.net', $permalink);
-                } else {
-                    $targetUrl = "https://www.threads.net/@{$username}/post/{$code}";
-                }
+                $targetUrl = ReplizService::extractThreadsUrl($res, $kw);
+                $username = $res['user']['username'] ?? $res['user_name'] ?? $res['owner']['username'] ?? $res['author']['username'] ?? $res['username'] ?? 'seller';
+                $code = $res['code'] ?? $res['shortcode'] ?? $res['pk'] ?? $res['id'] ?? md5($text);
 
                 $foundPostObjects[] = [
                     'id' => $code,
@@ -76,22 +70,8 @@ class ResearchProspectsWithOllama extends Command
         }
 
         if (empty($foundPostObjects)) {
-            $foundPostObjects = [
-                [
-                    'id' => 'DbSKJzAk4ww',
-                    'text' => "Potongan komisi marketplace sekarang makin tinggi 10-12%, seller UMKM kehabisan margin di biaya admin.",
-                    'username' => 'seller_online',
-                    'code' => 'DbSKJzAk4ww',
-                    'target_url' => "https://www.threads.net/@seller_online/post/DbSKJzAk4ww",
-                ],
-                [
-                    'id' => 'DbXKPzB4xyy',
-                    'text' => "Ada rekomendasi platform toko online mandiri yang instan dan bisa QRIS / COD tanpa potong komisi admin?",
-                    'username' => 'merchant_umkm',
-                    'code' => 'DbXKPzB4xyy',
-                    'target_url' => "https://www.threads.net/@merchant_umkm/post/DbXKPzB4xyy",
-                ],
-            ];
+            $this->warn("⚠️ Tidak ditemukan postingan baru di Threads saat ini untuk kata kunci: " . implode(', ', $keywords));
+            return Command::SUCCESS;
         }
 
         // 🛑 3. Anti-Repeat & Anti-Spam Deduplication Filter

@@ -49,31 +49,25 @@ class ThreadsRadarController extends Controller
 
         // Search live Threads posts via Repliz API & format direct permalinks
         $rawLivePosts = $repliz->searchThreadsContent($query);
-        $liveThreadsPosts = array_map(function ($res) {
+        $liveThreadsPosts = array_map(function ($res) use ($query) {
             if (! is_array($res)) {
                 return [
                     'text' => (string) $res,
                     'username' => 'seller_online',
-                    'target_url' => 'https://www.threads.net/@seller_online/post/DbSKJzAk4ww',
+                    'target_url' => 'https://www.threads.net',
                 ];
             }
 
-            $text = $res['text'] ?? $res['description'] ?? $res['content'] ?? '';
-            $username = $res['user']['username'] ?? $res['user_name'] ?? $res['owner']['username'] ?? $res['author']['username'] ?? 'seller_online';
-            $code = $res['code'] ?? $res['shortcode'] ?? $res['pk'] ?? $res['id'] ?? 'DbSKJzAk4ww';
-            $permalink = $res['permalink'] ?? $res['url'] ?? $res['link'] ?? null;
-
-            if (! empty($permalink) && str_starts_with($permalink, 'http')) {
-                $url = str_replace('threads.com', 'threads.net', $permalink);
-            } else {
-                $url = "https://www.threads.net/@{$username}/post/{$code}";
-            }
+            $text = $res['text'] ?? $res['description'] ?? $res['content'] ?? $res['caption'] ?? '';
+            $username = $res['user']['username'] ?? $res['user_name'] ?? $res['owner']['username'] ?? $res['author']['username'] ?? $res['username'] ?? 'seller';
+            $code = $res['code'] ?? $res['shortcode'] ?? $res['pk'] ?? $res['id'] ?? null;
+            $targetUrl = ReplizService::extractThreadsUrl($res, $query);
 
             return [
                 'text' => $text,
                 'username' => $username,
                 'code' => $code,
-                'target_url' => $url,
+                'target_url' => $targetUrl,
             ];
         }, $rawLivePosts);
 

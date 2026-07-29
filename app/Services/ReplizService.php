@@ -369,4 +369,34 @@ class ReplizService
 
         return [];
     }
+
+    /**
+     * Extract exact Threads post permalink URL from Repliz API item
+     */
+    public static function extractThreadsUrl(array $item, string $fallbackKeyword = 'ecommerce'): string
+    {
+        // 1. Direct permalink / url / link from Repliz API
+        $url = $item['url'] ?? $item['permalink'] ?? $item['link'] ?? $item['web_url'] ?? $item['post_url'] ?? null;
+        if (! empty($url) && is_string($url) && str_starts_with($url, 'http')) {
+            return str_replace('threads.com', 'threads.net', $url);
+        }
+
+        // 2. Extract username & post code / ID
+        $username = $item['user']['username'] ?? $item['user_name'] ?? $item['owner']['username'] ?? $item['author']['username'] ?? $item['username'] ?? null;
+        $code = $item['code'] ?? $item['shortcode'] ?? $item['pk'] ?? $item['id'] ?? $item['id_str'] ?? $item['post_id'] ?? null;
+
+        if (! empty($username) && ! empty($code)) {
+            return "https://www.threads.net/@{$username}/post/{$code}";
+        }
+
+        if (! empty($code)) {
+            return "https://www.threads.net/post/{$code}";
+        }
+
+        if (! empty($username)) {
+            return "https://www.threads.net/@{$username}";
+        }
+
+        return "https://www.threads.net";
+    }
 }
