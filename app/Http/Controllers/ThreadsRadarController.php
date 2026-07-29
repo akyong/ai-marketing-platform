@@ -176,7 +176,7 @@ class ThreadsRadarController extends Controller
             ],
         ]);
 
-        // 2. If log_id is provided, immediately re-generate the drafted reply using updated memory!
+        // 2. If log_id is provided, immediately re-generate and upgrade the drafted reply in a multi-turn conversation thread!
         $logId = $request->input('log_id');
         $newReply = null;
 
@@ -188,7 +188,7 @@ class ThreadsRadarController extends Controller
                     ? $brand->knowledge_base
                     : 'Waperu.com: Platform Toko Online Mandiri 0% Komisi, QRIS & COD langsung ke rekening.';
 
-                // Collect all active memory rules
+                // Collect all global active memory rules
                 $memoryRules = AiGeneration::where('workspace_id', $workspace->id)
                     ->where('type', 'user_memory_rule')
                     ->latest()
@@ -202,13 +202,39 @@ class ThreadsRadarController extends Controller
                 $scannedText = ! empty($scannedPosts) && is_array($scannedPosts) ? $scannedPosts[0] : $log->prompt;
                 $targetUsername = $metadata['username'] ?? 'seller';
 
+                // Initialize conversation threads if empty
+                $history = $metadata['conversation_threads'] ?? [];
+                if (empty($history)) {
+                    $initialDraft = $log->response_text ?: ($metadata['drafted_reply'] ?? 'Draft Balasan Awal');
+                    $history[] = [
+                        'role' => 'assistant',
+                        'content' => $initialDraft,
+                        'created_at' => $log->created_at?->toIso8601String() ?? now()->toIso8601String(),
+                    ];
+                }
+
+                // Append user feedback to history
+                $history[] = [
+                    'role' => 'user',
+                    'content' => $feedbackText,
+                    'created_at' => now()->toIso8601String(),
+                ];
+
+                // Build history context for Ollama
+                $formattedHistory = '';
+                foreach ($history as $h) {
+                    $speaker = $h['role'] === 'user' ? 'PEMILIK BRAND (MASUKAN)' : 'OLLAMA DRAFT REVISION';
+                    $formattedHistory .= "{$speaker}: {$h['content']}\n";
+                }
+
                 $prompt = "Anda adalah tim resmi Waperu.com yang ramah, empati, dan solutif.\n" .
                     "MEMORI BRAND WAPERU:\n{$brandKnowledge}\n\n" .
-                    "ATURAN MEMORI KHUSUS DARI PEMILIK BRAND:\n- {$memoryRules}\n\n" .
-                    "POSTINGAN SELLER (@{$targetUsername}):\n\"{$scannedText}\"\n\n" .
-                    "TUGAS: Tuliskan balasan komentar Threads yang ramah, solutif, dan relevan dengan postingan seller tersebut.\n" .
-                    "PATUHI SELURUH MEMORI DARI PEMILIK BRAND DI ATAS.\n" .
-                    "DILARANG keras menjawab 'Maaf saya tidak bisa membantu', 'Sebagai AI', atau penolakan lainnya. Selalu berikan respon solutif ramah manusiawi maksimal 280 karakter.";
+                    "ATURAN MEMORI UMUM DARI PEMILIK BRAND:\n- {$memoryRules}\n\n" .
+                    "POSTINGAN TARGET SELLER (@{$targetUsername}):\n\"{$scannedText}\"\n\n" .
+                    "RIWAYAT REVISI & PERCAKAPAN DENGAN PEMILIK BRAND PADA STATUS INI:\n{$formattedHistory}\n\n" .
+                    "TUGAS KREATIF OLLAMA AI:\n" .
+                    "Tuliskan DRAFT BALASAN TERBARU (Versi Upgrade) yang mematuhi 100% masukan terbaru dari Pemilik Brand di atas.\n" .
+                    "DILARANG keras menjawab 'Maaf saya tidak bisa membantu', 'Sebagai AI', atau penolakan. Selalu berikan respon solutif ramah manusiawi maksimal 280 karakter.";
 
                 $newReply = $ollama->generate($prompt);
                 $newReply = trim(str_replace(['**', '###', 'As an AI', 'Sebagai AI'], '', $newReply));
@@ -217,8 +243,17 @@ class ThreadsRadarController extends Controller
                     $newReply = "Halo kak @{$targetUsername}! Daripada pusing urus potongan admin & komisi marketplace, yuk coba bikin toko online mandiri di Waperu.com 0% komisi, QRIS & COD langsung ke rekening sendiri. Semoga lancar terus usahanya kak!";
                 }
 
+                // Append new assistant reply to history
+                $history[] = [
+                    'role' => 'assistant',
+                    'content' => $newReply,
+                    'created_at' => now()->toIso8601String(),
+                ];
+
+                $metadata['conversation_threads'] = $history;
                 $metadata['drafted_reply'] = $newReply;
                 $metadata['last_feedback'] = $feedbackText;
+
                 $log->update([
                     'response_text' => $newReply,
                     'metadata' => $metadata,
@@ -227,7 +262,7 @@ class ThreadsRadarController extends Controller
         }
 
         $msg = $newReply
-            ? "🧠 Memori Disimpan & Draft Balasan Di-update oleh Ollama AI!"
+            ? "⚡ Draft Balasan Berhasil Di-upgrade Berdasarkan Masukan Anda!"
             : "🧠 Memori Pembelajaran Disimpan! Ollama AI akan selalu mengingat aturan ini: \"{$feedbackText}\"";
 
         return redirect()->back()->with('success', $msg);

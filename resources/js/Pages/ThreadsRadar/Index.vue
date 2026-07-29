@@ -368,61 +368,85 @@ const formatDate = (dateStr) => {
                                 <p class="whitespace-pre-wrap italic text-gray-800 font-medium text-sm">"{{ log.metadata.scanned_posts[0] }}"</p>
                             </div>
 
-                            <!-- Interactive Drafted Reply prepared by Ollama -->
-                            <div class="rounded-lg bg-emerald-50 p-4 text-xs text-emerald-950 border border-emerald-200 shadow-sm">
-                                <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5 pb-2 border-b border-emerald-200/80">
-                                    <strong class="font-bold text-emerald-900 text-sm flex items-center gap-1.5">
-                                        <span>💬 Draft Balasan Komen Solutif Waperu (Ollama AI):</span>
-                                    </strong>
+                            <!-- Interactive Multi-Turn Refinement & Drafted Reply prepared by Ollama -->
+                            <div class="rounded-xl bg-gradient-to-b from-emerald-50 to-teal-50/40 p-4 text-xs text-emerald-950 border border-emerald-200 shadow-sm space-y-3">
+                                <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-emerald-200/80">
+                                    <div class="flex items-center gap-2">
+                                        <strong class="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
+                                            <span>💬 Draft Balasan Komen (Ollama AI Refinement Thread)</span>
+                                        </strong>
+                                        <span v-if="log.metadata?.conversation_threads?.length > 1" class="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-extrabold text-indigo-900 border border-indigo-200">
+                                            ⚡ Versi {{ Math.floor(log.metadata.conversation_threads.length / 2) + 1 }} (Upgraded)
+                                        </span>
+                                    </div>
 
                                     <div class="flex items-center gap-2">
                                         <a
                                             :href="log.metadata?.target_url || 'https://threads.net/search?q=' + encodeURIComponent(query)"
                                             target="_blank"
-                                            class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-gray-100 border border-indigo-200 shadow-sm"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-gray-100 border border-indigo-200 shadow-xs"
                                         >
-                                            <span>💬 Balas Manual di Threads Web</span>
+                                            <span>💬 Balas Manual</span>
                                             <span>↗</span>
                                         </a>
 
-                                        <span v-if="log.metadata?.is_published" class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                                        <span v-if="log.metadata?.is_published" class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs flex items-center gap-1">
                                             ✓ TERKIRIM VIA REPLIZ
                                         </span>
                                         <button
                                             v-else
                                             @click="sendReply(log)"
                                             :disabled="activePublishingId === log.id"
-                                            class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 disabled:opacity-50"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-extrabold text-white shadow-md transition hover:bg-emerald-700 disabled:opacity-50"
                                         >
                                             <span>🚀</span>
-                                            <span>{{ activePublishingId === log.id ? 'Mengirim Balasan...' : 'Kirim Balasan Ini via Repliz' }}</span>
+                                            <span>{{ activePublishingId === log.id ? 'Mengirim Balasan...' : 'Approve & Kirim Komen ke Threads' }}</span>
                                         </button>
                                     </div>
                                 </div>
-                                <p class="whitespace-pre-wrap font-semibold leading-relaxed text-emerald-950 text-sm bg-white p-3 rounded border border-emerald-100">{{ log.response_text || log.metadata?.drafted_reply }}</p>
 
-                                <!-- 🧠 Brand Owner Feedback & Self-Learning Input -->
-                                <div class="mt-3.5 pt-3 border-t border-emerald-200/60">
-                                    <div class="flex items-center justify-between mb-1.5">
-                                        <label class="text-[11px] font-bold text-emerald-900 flex items-center gap-1.5">
-                                            <span>🧠 Beri Masukan ke Ollama AI agar Self-Learning (Ingat di Memori):</span>
-                                        </label>
+                                <!-- Multi-Turn Conversation Thread Timeline (If available) -->
+                                <div v-if="log.metadata?.conversation_threads && log.metadata.conversation_threads.length > 0" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                    <div
+                                        v-for="(msg, mIdx) in log.metadata.conversation_threads"
+                                        :key="mIdx"
+                                        class="rounded-lg p-3 text-xs shadow-xs"
+                                        :class="msg.role === 'user' ? 'bg-amber-100/90 text-amber-950 ml-4 border border-amber-300' : 'bg-white text-emerald-950 border border-emerald-200'"
+                                    >
+                                        <div class="flex items-center justify-between text-[10px] font-bold mb-1 opacity-75">
+                                            <span>{{ msg.role === 'user' ? '👤 Masukan Anda (Pemilik Brand):' : '🤖 Ollama AI (Draft Balasan Versi ' + (Math.floor(mIdx / 2) + 1) + '):' }}</span>
+                                            <span>{{ formatDate(msg.created_at) }}</span>
+                                        </div>
+                                        <p class="whitespace-pre-wrap font-medium text-xs">{{ msg.content }}</p>
                                     </div>
+                                </div>
+
+                                <!-- Fallback single reply display if no history thread -->
+                                <div v-else class="bg-white p-3 rounded-lg border border-emerald-200 shadow-xs">
+                                    <div class="text-[10px] font-bold text-emerald-700 mb-1">🤖 Draft Balasan Ollama AI Terbaru:</div>
+                                    <p class="whitespace-pre-wrap font-semibold text-emerald-950 text-sm">{{ log.response_text || log.metadata?.drafted_reply }}</p>
+                                </div>
+
+                                <!-- 🧠 Continuous Refinement Feedback Input -->
+                                <div class="pt-2 border-t border-emerald-200/80">
+                                    <label class="block text-[11px] font-bold text-indigo-950 mb-1.5">
+                                        💡 Belum Sesuai? Berikan Masukan untuk Merevisi & Meng-upgrade Balasan Ini:
+                                    </label>
                                     <div class="flex gap-2">
                                         <input
                                             v-model="feedbackInputs[log.id]"
                                             type="text"
-                                            placeholder="Contoh: Jangan bilang komisi 0% saja, sebutkan gratis buat website dan fitur QRIS tanpa potong admin..."
-                                            class="w-full rounded-lg border-emerald-300 text-xs shadow-sm focus:border-emerald-600 focus:ring-emerald-600 bg-white"
+                                            placeholder="Contoh: Kurang ramah, jangan terlalu langsung jualan, tanya dulu stoknya atau empati dulu..."
+                                            class="w-full rounded-lg border-indigo-300 text-xs shadow-sm focus:border-indigo-600 focus:ring-indigo-600 bg-white"
                                             @keydown.enter.prevent="submitLogFeedback(log.id)"
                                         />
                                         <button
                                             type="button"
                                             @click="submitLogFeedback(log.id)"
                                             :disabled="submittingFeedbackId === log.id || !feedbackInputs[log.id]"
-                                            class="inline-flex items-center gap-1 rounded-lg bg-indigo-700 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-800 disabled:opacity-40 shrink-0"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-40 shrink-0"
                                         >
-                                            <span>🧠 Ajarkan Rule</span>
+                                            <span>⚡ Upgrade Balasan</span>
                                         </button>
                                     </div>
                                 </div>
