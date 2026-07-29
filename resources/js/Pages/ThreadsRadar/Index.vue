@@ -406,29 +406,50 @@ const formatDate = (dateStr) => {
                                 </div>
 
                                 <!-- Multi-Turn Conversation Thread Timeline (If available) -->
-                                <div v-if="log.metadata?.conversation_threads && log.metadata.conversation_threads.length > 0" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                <div v-if="log.metadata?.conversation_threads && log.metadata.conversation_threads.length > 0" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                                     <div
                                         v-for="(msg, mIdx) in log.metadata.conversation_threads"
                                         :key="mIdx"
-                                        class="rounded-lg p-3 text-xs shadow-xs"
-                                        :class="msg.role === 'user' ? 'bg-amber-100/90 text-amber-950 ml-4 border border-amber-300' : 'bg-white text-emerald-950 border border-emerald-200'"
+                                        class="rounded-xl p-3 text-xs shadow-xs transition"
+                                        :class="msg.role === 'user' 
+                                            ? 'bg-amber-100/90 text-amber-950 ml-6 border border-amber-300' 
+                                            : (mIdx === log.metadata.conversation_threads.length - 1 
+                                                ? 'bg-white text-emerald-950 border-2 border-emerald-500 shadow-md ring-2 ring-emerald-200' 
+                                                : 'bg-white/80 text-emerald-950 border border-emerald-200')"
                                     >
-                                        <div class="flex items-center justify-between text-[10px] font-bold mb-1 opacity-75">
-                                            <span>{{ msg.role === 'user' ? '👤 Masukan Anda (Pemilik Brand):' : '🤖 Ollama AI (Draft Balasan Versi ' + (Math.floor(mIdx / 2) + 1) + '):' }}</span>
-                                            <span>{{ formatDate(msg.created_at) }}</span>
+                                        <div class="flex items-center justify-between text-[10px] font-bold mb-1 opacity-85">
+                                            <span class="flex items-center gap-1">
+                                                <span>{{ msg.role === 'user' ? '👤 Masukan Anda (Pemilik Brand):' : '🤖 Ollama AI (Draft Balasan Versi ' + (Math.floor(mIdx / 2) + 1) + '):' }}</span>
+                                                <span v-if="msg.role === 'assistant' && mIdx === log.metadata.conversation_threads.length - 1" class="rounded bg-emerald-600 px-1.5 py-0.2 text-[9px] text-white font-extrabold">
+                                                    TERBARU / HASIL REVISI
+                                                </span>
+                                            </span>
+                                            <span class="text-gray-400">{{ formatDate(msg.created_at) }}</span>
                                         </div>
-                                        <p class="whitespace-pre-wrap font-medium text-xs">{{ msg.content }}</p>
+                                        <p class="whitespace-pre-wrap font-semibold text-xs leading-relaxed">{{ msg.content }}</p>
+                                    </div>
+
+                                    <!-- Loading State Card while Ollama AI is thinking/revising -->
+                                    <div v-if="submittingFeedbackId === log.id" class="rounded-xl p-3.5 text-xs bg-indigo-900 text-white shadow-md border border-indigo-700 animate-pulse flex items-center gap-3">
+                                        <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent shrink-0"></div>
+                                        <div>
+                                            <div class="font-bold text-xs text-indigo-200">🤖 Local Ollama AI Sedang Berpikir...</div>
+                                            <div class="text-[11px] text-indigo-300">Merevisi & meng-upgrade balasan komentar berdasarkan masukan terbaru Anda...</div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Fallback single reply display if no history thread -->
-                                <div v-else class="bg-white p-3 rounded-lg border border-emerald-200 shadow-xs">
-                                    <div class="text-[10px] font-bold text-emerald-700 mb-1">🤖 Draft Balasan Ollama AI Terbaru:</div>
-                                    <p class="whitespace-pre-wrap font-semibold text-emerald-950 text-sm">{{ log.response_text || log.metadata?.drafted_reply }}</p>
+                                <div v-else class="bg-white p-3.5 rounded-xl border-2 border-emerald-500 shadow-sm">
+                                    <div class="flex items-center justify-between text-[10px] font-bold text-emerald-800 mb-1">
+                                        <span>🤖 Draft Balasan Ollama AI Terbaru:</span>
+                                        <span class="rounded bg-emerald-600 px-1.5 py-0.2 text-[9px] text-white font-extrabold">READY FOR APPROVAL</span>
+                                    </div>
+                                    <p class="whitespace-pre-wrap font-semibold text-emerald-950 text-sm leading-relaxed">{{ log.response_text || log.metadata?.drafted_reply }}</p>
                                 </div>
 
                                 <!-- 🧠 Continuous Refinement Feedback Input -->
-                                <div class="pt-2 border-t border-emerald-200/80">
+                                <div class="pt-2.5 border-t border-emerald-200/80">
                                     <label class="block text-[11px] font-bold text-indigo-950 mb-1.5">
                                         💡 Belum Sesuai? Berikan Masukan untuk Merevisi & Meng-upgrade Balasan Ini:
                                     </label>
@@ -436,17 +457,19 @@ const formatDate = (dateStr) => {
                                         <input
                                             v-model="feedbackInputs[log.id]"
                                             type="text"
+                                            :disabled="submittingFeedbackId === log.id"
                                             placeholder="Contoh: Kurang ramah, jangan terlalu langsung jualan, tanya dulu stoknya atau empati dulu..."
-                                            class="w-full rounded-lg border-indigo-300 text-xs shadow-sm focus:border-indigo-600 focus:ring-indigo-600 bg-white"
+                                            class="w-full rounded-lg border-indigo-300 text-xs shadow-sm focus:border-indigo-600 focus:ring-indigo-600 bg-white disabled:bg-gray-100"
                                             @keydown.enter.prevent="submitLogFeedback(log.id)"
                                         />
                                         <button
                                             type="button"
                                             @click="submitLogFeedback(log.id)"
-                                            :disabled="submittingFeedbackId === log.id || !feedbackInputs[log.id]"
-                                            class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-40 shrink-0"
+                                            :disabled="submittingFeedbackId === log.id || !feedbackInputs[log.id]?.trim()"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 shrink-0 transition"
                                         >
-                                            <span>⚡ Upgrade Balasan</span>
+                                            <span v-if="submittingFeedbackId === log.id" class="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                                            <span>{{ submittingFeedbackId === log.id ? 'Meng-upgrade...' : '⚡ Upgrade Balasan' }}</span>
                                         </button>
                                     </div>
                                 </div>
