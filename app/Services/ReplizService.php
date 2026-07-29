@@ -104,7 +104,11 @@ class ReplizService
                 $postType = $hasMedia ? 'image' : 'text';
                 $mediasPayload = array_map(fn($url) => ['type' => 'image', 'url' => $url], $post->media_urls ?? []);
 
-                if (! $hasMedia && in_array($platformType, ['instagram', 'tiktok', 'youtube'])) {
+                // Threads is a text-first platform. Send as clean text post to prevent Meta media download timeout
+                if ($platformType === 'threads' && empty($post->media_urls)) {
+                    $postType = 'text';
+                    $mediasPayload = [];
+                } elseif (! $hasMedia && in_array($platformType, ['instagram', 'tiktok', 'youtube'])) {
                     $postType = 'image';
                     $mediasPayload = [
                         [
