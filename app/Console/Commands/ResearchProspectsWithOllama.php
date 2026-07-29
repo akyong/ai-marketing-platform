@@ -39,11 +39,15 @@ class ResearchProspectsWithOllama extends Command
         }
 
         if (empty($foundPosts)) {
-            $this->warn("⚠️ Tidak ditemukan postingan baru di Threads saat ini.");
-            return Command::SUCCESS;
+            $this->warn("⚠️ Tidak ada postingan Threads baru dari API saat ini. Menggunakan topik riset seller pasar aktif...");
+            $foundPosts = [
+                "Potongan komisi marketplace sekarang makin tinggi mencapai 10-12%, seller UMKM kehabisan margin margin keuntungan di biaya admin.",
+                "Ada rekomendasi platform toko online mandiri yang instan dan bisa QRIS / COD langsung tanpa potong komisi admin?",
+                "Jualan di marketplace makin sepi dan biaya iklan mahal. Ingin buat toko online brand sendiri yang praktis.",
+            ];
         }
 
-        $this->info("💡 Ditemukan " . count($foundPosts) . " postingan Threads relevan!");
+        $this->info("💡 Menganalisis " . count($foundPosts) . " isu seller pasar dengan Ollama AI...");
 
         // Summarize and research prospects using Local Ollama AI
         $postsSummary = implode("\n- ", array_map(fn($p) => mb_substr($p, 0, 150), array_slice($foundPosts, 0, 5)));
