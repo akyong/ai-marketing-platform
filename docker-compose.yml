@@ -46,6 +46,15 @@ services:
     container_name: amp_ollama
     ports:
       - "11434:11434"
+    environment:
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_KEEP_ALIVE=5m
+    deploy:
+      resources:
+        limits:
+          cpus: '1.2'
+          memory: 2.2G
     volumes:
       - ollama_data:/root/.ollama
     restart: always

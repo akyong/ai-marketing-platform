@@ -33,6 +33,8 @@ class OllamaService
                 'stream' => false,
                 'options' => [
                     'temperature' => 0.7,
+                    'num_thread' => 2,
+                    'num_predict' => 250,
                 ],
             ]);
 
