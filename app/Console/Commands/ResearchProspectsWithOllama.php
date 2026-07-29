@@ -15,10 +15,18 @@ class ResearchProspectsWithOllama extends Command
 
     public function handle(OllamaService $ollama, ReplizService $repliz): int
     {
-        $workspace = Workspace::with('brands')->first();
-        $brand = $workspace?->brands->first();
+        // Fetch the brand that has the custom rules or knowledge base filled in Workspace Settings
+        $brand = Brand::where(function ($q) {
+            $q->whereNotNull('knowledge_base')->where('knowledge_base', '!=', '')
+              ->orWhereNotNull('custom_rules')->where('custom_rules', '!=', '');
+        })->latest('updated_at')->first()
+        ?? Workspace::with('brands')->first()?->brands->first();
 
-        $brandKnowledge = $brand?->knowledge_base ?? 'Waperu.com: Platform Toko Online Mandiri 0% Komisi, QRIS & COD langsung ke rekening.';
+        $workspace = $brand?->workspace ?? Workspace::first();
+
+        $brandKnowledge = ! empty($brand?->knowledge_base)
+            ? $brand->knowledge_base
+            : 'Waperu.com: Platform Toko Online Mandiri 0% Komisi, QRIS & COD langsung ke rekening.';
         $brandRules = $brand?->custom_rules ?? '';
 
         $inputKeyword = $this->argument('keyword');
