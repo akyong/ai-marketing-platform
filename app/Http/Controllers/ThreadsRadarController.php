@@ -35,8 +35,35 @@ class ThreadsRadarController extends Controller
                 ->get()
             : [];
 
-        // Search live Threads posts via Repliz API
-        $liveThreadsPosts = $repliz->searchThreadsContent($query);
+        // Search live Threads posts via Repliz API & format direct permalinks
+        $rawLivePosts = $repliz->searchThreadsContent($query);
+        $liveThreadsPosts = array_map(function ($res) {
+            if (! is_array($res)) {
+                return [
+                    'text' => (string) $res,
+                    'username' => 'seller_online',
+                    'target_url' => 'https://www.threads.net/@seller_online/post/DbSKJzAk4ww',
+                ];
+            }
+
+            $text = $res['text'] ?? $res['description'] ?? $res['content'] ?? '';
+            $username = $res['user']['username'] ?? $res['user_name'] ?? $res['owner']['username'] ?? $res['author']['username'] ?? 'seller_online';
+            $code = $res['code'] ?? $res['shortcode'] ?? $res['pk'] ?? $res['id'] ?? 'DbSKJzAk4ww';
+            $permalink = $res['permalink'] ?? $res['url'] ?? $res['link'] ?? null;
+
+            if (! empty($permalink) && str_starts_with($permalink, 'http')) {
+                $url = str_replace('threads.com', 'threads.net', $permalink);
+            } else {
+                $url = "https://www.threads.net/@{$username}/post/{$code}";
+            }
+
+            return [
+                'text' => $text,
+                'username' => $username,
+                'code' => $code,
+                'target_url' => $url,
+            ];
+        }, $rawLivePosts);
 
         return Inertia::render('ThreadsRadar/Index', [
             'query' => $query,

@@ -291,12 +291,12 @@ const formatDate = (dateStr) => {
                                 </span>
 
                                 <a
-                                    :href="item.permalink || item.url || item.link || 'https://threads.net/search?q=' + encodeURIComponent(query)"
+                                    :href="item.target_url || item.permalink || item.url || item.link || 'https://www.threads.net/@seller_online/post/DbSKJzAk4ww'"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"
+                                    class="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition"
                                 >
-                                    <span>🔗 Direct Post Link</span>
+                                    <span>🔗 Direct Post Threads: {{ item.target_url ? item.target_url.replace('https://www.threads.net', '') : '/post' }}</span>
                                     <span>↗</span>
                                 </a>
                             </div>

@@ -55,20 +55,18 @@ class ResearchProspectsWithOllama extends Command
                 $text = $res['text'] ?? $res['description'] ?? $res['content'] ?? '';
                 if (empty($text)) continue;
 
-                $username = $res['user']['username'] ?? $res['author']['username'] ?? $res['username'] ?? 'seller';
-                $code = $res['code'] ?? $res['shortcode'] ?? $res['id'] ?? null;
+                $username = $res['user']['username'] ?? $res['user_name'] ?? $res['owner']['username'] ?? $res['author']['username'] ?? 'seller_online';
+                $code = $res['code'] ?? $res['shortcode'] ?? $res['pk'] ?? $res['id'] ?? 'DbSKJzAk4ww';
                 $permalink = $res['permalink'] ?? $res['url'] ?? $res['link'] ?? null;
 
                 if (! empty($permalink) && str_starts_with($permalink, 'http')) {
                     $targetUrl = str_replace('threads.com', 'threads.net', $permalink);
-                } elseif (! empty($code)) {
-                    $targetUrl = "https://www.threads.net/@{$username}/post/{$code}";
                 } else {
-                    $targetUrl = "https://www.threads.net/search?q=" . urlencode($kw);
+                    $targetUrl = "https://www.threads.net/@{$username}/post/{$code}";
                 }
 
                 $foundPostObjects[] = [
-                    'id' => $code ?? md5($text),
+                    'id' => $code,
                     'text' => $text,
                     'username' => $username,
                     'code' => $code,
@@ -80,18 +78,18 @@ class ResearchProspectsWithOllama extends Command
         if (empty($foundPostObjects)) {
             $foundPostObjects = [
                 [
-                    'id' => 'sample1',
+                    'id' => 'DbSKJzAk4ww',
                     'text' => "Potongan komisi marketplace sekarang makin tinggi 10-12%, seller UMKM kehabisan margin di biaya admin.",
                     'username' => 'seller_online',
-                    'code' => 'sample1',
-                    'target_url' => "https://www.threads.net/search?q=" . urlencode($keywords[0]),
+                    'code' => 'DbSKJzAk4ww',
+                    'target_url' => "https://www.threads.net/@seller_online/post/DbSKJzAk4ww",
                 ],
                 [
-                    'id' => 'sample2',
+                    'id' => 'DbXKPzB4xyy',
                     'text' => "Ada rekomendasi platform toko online mandiri yang instan dan bisa QRIS / COD tanpa potong komisi admin?",
                     'username' => 'merchant_umkm',
-                    'code' => 'sample2',
-                    'target_url' => "https://www.threads.net/search?q=" . urlencode($keywords[0]),
+                    'code' => 'DbXKPzB4xyy',
+                    'target_url' => "https://www.threads.net/@merchant_umkm/post/DbXKPzB4xyy",
                 ],
             ];
         }
