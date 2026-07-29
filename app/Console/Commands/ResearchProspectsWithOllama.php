@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\AiGeneration;
+use App\Models\Brand;
 use App\Models\Workspace;
 use App\Services\OllamaService;
 use App\Services\ReplizService;
