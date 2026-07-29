@@ -160,6 +160,14 @@ class ReplizService
                     'scheduleAt' => $scheduleTime,
                 ];
 
+                // If this is a reply to a specific status post, pass target post ID
+                $targetPostId = $post->metadata['target_post_id'] ?? $post->metadata['post_id'] ?? null;
+                if (! empty($targetPostId)) {
+                    $schedulePayload['replyToId'] = $targetPostId;
+                    $schedulePayload['replyPostId'] = $targetPostId;
+                    $schedulePayload['postId'] = $targetPostId;
+                }
+
                 $response = $httpClient->post('https://api.repliz.com/public/schedule', $schedulePayload);
 
                 if ($response->successful()) {

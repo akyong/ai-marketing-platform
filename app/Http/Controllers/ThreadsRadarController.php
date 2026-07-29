@@ -67,15 +67,22 @@ class ThreadsRadarController extends Controller
         $workspace = $user->currentWorkspace()->with('defaultBrand')->firstOrFail();
         $brand = $workspace->brands->first();
 
+        $targetPostId = $request->input('target_post_id');
+        $targetUrl = $request->input('target_url');
+
         $post = Post::create([
             'workspace_id' => $workspace->id,
             'brand_id' => $brand?->id,
-            'title' => '🧵 Threads Prospect Reply - ' . now()->format('d M H:i'),
+            'title' => '🧵 Threads Reply Komen Seller - ' . now()->format('d M H:i'),
             'content' => $request->content,
             'platforms' => ['threads'],
             'status' => 'scheduled',
             'scheduled_at' => now(),
             'media_urls' => [],
+            'metadata' => [
+                'target_post_id' => $targetPostId,
+                'target_url' => $targetUrl,
+            ],
         ]);
 
         $published = $repliz->publish($post);

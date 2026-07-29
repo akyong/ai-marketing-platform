@@ -58,6 +58,8 @@ const sendReply = (log) => {
     router.post(route('threads-radar.reply-now'), {
         content: replyText,
         log_id: log.id,
+        target_post_id: log.metadata?.target_post_id || log.metadata?.post_id || null,
+        target_url: log.metadata?.target_url || null,
     }, {
         preserveScroll: true,
         onFinish: () => {
@@ -88,16 +90,16 @@ const formatDate = (dateStr) => {
             <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h2 class="text-xl font-bold leading-tight text-gray-800">
-                        📡 Threads Social Radar & Prospecting Engine (Ollama AI)
+                        📡 Threads Social Radar & Reply Prospecting Engine
                     </h2>
                     <p class="text-xs text-gray-500">
-                        Riset & Monitoring Otonom 24/7 (Setiap 1 Menit) dengan Kata Kunci Fleksibel AI Membaca Memori Brand Waperu.com
+                        Memantau status & komentar seller di Threads 24/7 (Setiap 1 Menit), menyiapkan balasan solutif berorientasi komentar.
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="inline-flex items-center rounded-full bg-emerald-100 px-3.5 py-1.5 text-xs font-bold text-emerald-800 shadow-sm border border-emerald-300">
                         <span class="mr-2 h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Auto-Run Setiap 1 Menit Active
+                        Auto-Run 1-Menit Active
                     </span>
                 </div>
             </div>
@@ -110,12 +112,12 @@ const formatDate = (dateStr) => {
                     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div class="space-y-1">
                             <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-300">
-                                <span>⚡ Status AI Runner Otonom</span>
+                                <span>💬 Fitur Komen & Reply Threads Seller</span>
                                 <span>•</span>
                                 <span class="text-emerald-400">Jadwal Otomatis: Setiap 1 Menit</span>
                             </div>
                             <h3 class="text-lg font-extrabold text-white">
-                                Local Ollama AI (Llama 3.2 1B) Bekerja Non-Stop Menganalisis Customer Waperu
+                                Local Ollama AI Membaca Status Seller & Mempersiapkan Balasan Komen Solutif
                             </h3>
                             <p class="text-xs text-indigo-200">
                                 Terakhir Dieksekusi: <strong class="text-emerald-300 underline">{{ lastExecutedAt ? formatDate(lastExecutedAt) : 'Menunggu Run 1-Menit Pertama' }}</strong>
@@ -138,7 +140,7 @@ const formatDate = (dateStr) => {
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     <form @submit.prevent="handleSearch" class="flex-1">
                         <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">
-                            🔍 Filter Pencarian Manual Threads (Opsional):
+                            🔍 Filter Pencarian Manual Status / Komen Threads:
                         </label>
                         <div class="flex gap-2">
                             <input
@@ -163,13 +165,13 @@ const formatDate = (dateStr) => {
                     <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
                         <div>
                             <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
-                                <span>🤖 Log Eksekusi Ollama AI (Setiap 1 Menit) & Interaksi Balas 1-Klik</span>
+                                <span>💬 Riwayat Status Threads & Draft Balasan Komen Ollama AI</span>
                                 <span class="rounded bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-800">
-                                    {{ prospectLogs.length }} Eksekusi Dicatat
+                                    {{ prospectLogs.length }} Status Dipindai
                                 </span>
                             </h3>
                             <p class="text-xs text-gray-500">
-                                Klik tombol "🚀 Kirim Balasan Ini Sekarang via Repliz" untuk langsung menerbitkan draft balasan Ollama AI ke Threads!
+                                Pilih untuk membalas secara otomatis via Repliz API atau buka postingan asli di Threads Web untuk membalas langsung di komentar seller.
                             </p>
                         </div>
                     </div>
@@ -183,7 +185,7 @@ const formatDate = (dateStr) => {
                             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 pb-2.5 mb-3">
                                 <div class="flex items-center gap-2">
                                     <span class="rounded bg-indigo-600 px-2.5 py-0.5 text-xs font-bold text-white">
-                                        ⚡ Eksekusi 1-Menit
+                                        💬 Target Komen / Status Seller
                                     </span>
                                     <span v-if="log.metadata?.is_duplicate" class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900 border border-amber-300">
                                         🛡️ Anti-Repeat (Sudah Pernah Diproses)
@@ -206,31 +208,52 @@ const formatDate = (dateStr) => {
                                 <strong>💡 Analisis Keluhan Seller (Ollama AI):</strong> {{ log.metadata.insight_extracted }}
                             </div>
 
-                            <!-- Scanned Post Sample -->
+                            <!-- Scanned Post Target -->
                             <div v-if="log.metadata?.scanned_posts && log.metadata.scanned_posts.length > 0" class="mb-3 text-xs text-gray-700 bg-white p-3 rounded border border-gray-200">
-                                <strong class="text-gray-900">🧵 Postingan Target Seller:</strong>
-                                <p class="mt-1 whitespace-pre-wrap italic">"{{ log.metadata.scanned_posts[0] }}"</p>
+                                <div class="flex items-center justify-between mb-1">
+                                    <strong class="text-gray-900">🧵 Status / Keluhan Seller Target:</strong>
+                                    <a
+                                        :href="log.metadata?.target_url || 'https://threads.net/search?q=' + encodeURIComponent(query)"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1"
+                                    >
+                                        <span>🔗 Buka Postingan Seller Asli di Threads</span>
+                                        <span>↗</span>
+                                    </a>
+                                </div>
+                                <p class="mt-1 whitespace-pre-wrap italic text-gray-800 font-medium">"{{ log.metadata.scanned_posts[0] }}"</p>
                             </div>
 
                             <!-- Interactive Drafted Reply prepared by Ollama -->
                             <div class="rounded-lg bg-emerald-50 p-4 text-xs text-emerald-950 border border-emerald-200 shadow-sm">
                                 <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5 pb-2 border-b border-emerald-200/80">
                                     <strong class="font-bold text-emerald-900 text-sm flex items-center gap-1.5">
-                                        <span>💬 Draft Balasan Solutif Waperu (Local Ollama AI)</span>
+                                        <span>💬 Draft Balasan Komen Solutif Waperu (Ollama AI):</span>
                                     </strong>
 
-                                    <span v-if="log.metadata?.is_published" class="rounded bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-sm flex items-center gap-1">
-                                        ✓ TERKIRIM KE THREADS VIA REPLIZ
-                                    </span>
-                                    <button
-                                        v-else
-                                        @click="sendReply(log)"
-                                        :disabled="activePublishingId === log.id"
-                                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 disabled:opacity-50"
-                                    >
-                                        <span>🚀</span>
-                                        <span>{{ activePublishingId === log.id ? 'Mengirim ke Threads...' : 'Kirim Balasan Ini Sekarang via Repliz' }}</span>
-                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        <a
+                                            :href="log.metadata?.target_url || 'https://threads.net/search?q=' + encodeURIComponent(query)"
+                                            target="_blank"
+                                            class="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-200 border border-gray-300"
+                                        >
+                                            <span>💬 Balas di Threads Web</span>
+                                        </a>
+
+                                        <span v-if="log.metadata?.is_published" class="rounded bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                                            ✓ TERKIRIM VlA REPLIZ
+                                        </span>
+                                        <button
+                                            v-else
+                                            @click="sendReply(log)"
+                                            :disabled="activePublishingId === log.id"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 disabled:opacity-50"
+                                        >
+                                            <span>🚀</span>
+                                            <span>{{ activePublishingId === log.id ? 'Mengirim Balasan...' : 'Kirim Balasan Ini via Repliz' }}</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <p class="whitespace-pre-wrap font-semibold leading-relaxed text-emerald-950 text-sm bg-white p-3 rounded border border-emerald-100">{{ log.response_text || log.metadata?.drafted_reply }}</p>
                             </div>
@@ -238,45 +261,8 @@ const formatDate = (dateStr) => {
                     </div>
 
                     <div v-else class="rounded-lg bg-gray-50 p-8 text-center text-sm text-gray-500">
-                        <p class="font-medium text-gray-700">⏳ Belum ada log eksekusi 1-menit tersimpan.</p>
+                        <p class="font-medium text-gray-700">⏳ Belum ada status seller yang dipindai.</p>
                         <p class="mt-1 text-xs text-gray-400">Schedule otomatis `ollama:research` berjalan setiap 1 menit di VPS Anda.</p>
-                    </div>
-                </div>
-
-                <!-- Live Threads Scanned Status List -->
-                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-                        <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
-                            <span>🧵 Hasil Pencarian Status Threads Real-Time</span>
-                        </h3>
-                    </div>
-
-                    <div v-if="liveThreadsPosts && liveThreadsPosts.length > 0" class="space-y-4">
-                        <div
-                            v-for="(item, idx) in liveThreadsPosts"
-                            :key="idx"
-                            class="rounded-lg border border-gray-200 p-4 transition hover:border-indigo-300"
-                        >
-                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2 mb-2">
-                                <span class="rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                                    Status Threads Publik
-                                </span>
-
-                                <a
-                                    :href="item.url || item.link || 'https://threads.net/search?q=' + encodeURIComponent(query)"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"
-                                >
-                                    <span>🔗 Buka Postingan Asli & Balas</span>
-                                    <span>↗</span>
-                                </a>
-                            </div>
-
-                            <p class="whitespace-pre-wrap text-sm text-gray-800 font-medium">
-                                {{ item.text || item.description || item.content || item }}
-                            </p>
-                        </div>
                     </div>
                 </div>
             </div>
