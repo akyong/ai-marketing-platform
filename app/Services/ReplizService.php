@@ -305,21 +305,25 @@ class ReplizService
                 // 1. Priority: Find account with type/platform 'threads'
                 foreach ($accounts as $acc) {
                     if (! is_array($acc)) continue;
-                    $platform = strtolower($acc['type'] ?? $acc['platform'] ?? '');
-                    $id = (string) ($acc['_id'] ?? $acc['id'] ?? $acc['accountId'] ?? $acc['generatedId'] ?? '');
-                    if (($platform === 'threads' || str_contains($platform, 'thread')) && strlen(trim($id)) === 24) {
+                    $platform = strtolower($acc['type'] ?? $acc['platform'] ?? $acc['provider'] ?? '');
+                    $id = (string) ($acc['_id'] ?? $acc['id'] ?? $acc['accountId'] ?? $acc['account_id'] ?? $acc['generatedId'] ?? '');
+                    if (($platform === 'threads' || str_contains($platform, 'thread')) && ! empty(trim($id))) {
                         return trim($id);
                     }
                 }
 
-                // 2. Fallback: Find any connected account with valid 24-character Mongoose ID
+                // 2. Fallback: Find any connected account with non-empty ID
                 foreach ($accounts as $acc) {
                     if (! is_array($acc)) continue;
-                    $id = (string) ($acc['_id'] ?? $acc['id'] ?? $acc['accountId'] ?? $acc['generatedId'] ?? '');
-                    if (strlen(trim($id)) === 24) {
+                    $id = (string) ($acc['_id'] ?? $acc['id'] ?? $acc['accountId'] ?? $acc['account_id'] ?? $acc['generatedId'] ?? '');
+                    if (! empty(trim($id))) {
                         return trim($id);
                     }
                 }
+
+                Log::info("Repliz getThreadsAccountId: No account ID found in accounts array", ['accounts' => $accounts]);
+            } else {
+                Log::warning("Repliz getThreadsAccountId HTTP {$response->status()}", ['body' => $response->body()]);
             }
         } catch (\Exception $e) {
             Log::warning("Repliz getThreadsAccountId Exception: " . $e->getMessage());
