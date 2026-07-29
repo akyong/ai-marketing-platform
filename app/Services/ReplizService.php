@@ -277,8 +277,20 @@ class ReplizService
 
     public function getActiveApiKey(): string
     {
-        $keyRecord = ApiKey::where('provider', 'repliz')->where('is_active', true)->first();
-        return $keyRecord ? $keyRecord->api_key : env('REPLIZ_API_KEY', '');
+        return $this->apiKey;
+    }
+
+    /**
+     * Build HTTP client with exact same auth as the working publish() method
+     */
+    protected function buildHttpClient(?string $apiKey = null): \Illuminate\Http\Client\PendingRequest
+    {
+        $key = $apiKey ?: $this->apiKey;
+        if (str_contains($key, ':')) {
+            [$accessKey, $secretKey] = explode(':', $key, 2);
+            return Http::withBasicAuth(trim($accessKey), trim($secretKey));
+        }
+        return Http::withToken($key);
     }
 
     /**
@@ -286,18 +298,13 @@ class ReplizService
      */
     public function getThreadsAccountId(?string $apiKey = null): ?string
     {
-        $key = $apiKey ?: $this->getActiveApiKey();
+        $key = $apiKey ?: $this->apiKey;
         if (empty($key)) return null;
 
         try {
-            if (str_contains($key, ':')) {
-                [$accessKey, $secretKey] = explode(':', $key, 2);
-                $httpClient = Http::withBasicAuth(trim($accessKey), trim($secretKey));
-            } else {
-                $httpClient = Http::withHeaders(['x-api-key' => $key])->withToken($key);
-            }
-
+            $httpClient = $this->buildHttpClient($key);
             $response = $httpClient->get('https://api.repliz.com/public/account', ['limit' => 50]);
+
             if ($response->successful()) {
                 $json = $response->json();
                 $accounts = $json['docs'] ?? $json['data'] ?? $json['accounts'] ?? $json['items'] ?? (is_array($json) ? $json : []);
@@ -321,7 +328,7 @@ class ReplizService
                     }
                 }
 
-                Log::info("Repliz getThreadsAccountId: No account ID found in accounts array", ['accounts' => $accounts]);
+                Log::info("Repliz getThreadsAccountId: No account ID found", ['accounts' => $accounts]);
             } else {
                 Log::warning("Repliz getThreadsAccountId HTTP {$response->status()}", ['body' => $response->body()]);
             }
@@ -337,25 +344,18 @@ class ReplizService
      */
     public function searchThreadsContent(string $query): array
     {
-        $apiKey = $this->getActiveApiKey();
-        if (empty($apiKey)) {
+        if (empty($this->apiKey)) {
             return [];
         }
 
-        $accountId = $this->getThreadsAccountId($apiKey);
+        $accountId = $this->getThreadsAccountId();
         if (empty($accountId)) {
-            Log::info("Repliz searchThreadsContent: accountId 24-char belum ditemukan di akun Repliz.");
+            Log::info("Repliz searchThreadsContent: accountId belum ditemukan. Pastikan akun Threads sudah terhubung di Repliz.");
             return [];
         }
 
         try {
-            if (str_contains($apiKey, ':')) {
-                [$accessKey, $secretKey] = explode(':', $apiKey, 2);
-                $httpClient = Http::withBasicAuth(trim($accessKey), trim($secretKey));
-            } else {
-                $httpClient = Http::withHeaders(['x-api-key' => $apiKey])->withToken($apiKey);
-            }
-
+            $httpClient = $this->buildHttpClient();
             $response = $httpClient->get('https://api.repliz.com/public/research/threads/content/search', [
                 'search' => $query,
                 'accountId' => $accountId,
@@ -363,6 +363,7 @@ class ReplizService
 
             if ($response->successful()) {
                 $data = $response->json();
+                Log::info("Repliz Threads Search OK for '{$query}'", ['count' => count($data['docs'] ?? $data['data'] ?? [])]);
                 return $data['docs'] ?? $data['data'] ?? $data['items'] ?? $data['results'] ?? $data['result'] ?? [];
             }
 
