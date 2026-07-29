@@ -32,4 +32,5 @@ jobs:
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan workspace:fix-all
             docker compose exec -T app php artisan optimize:clear
+            docker compose exec -T ollama ollama pull llama3.2:1b || true
             (crontab -l 2>/dev/null | grep -v "ai-marketing-platform"; echo "* * * * * cd /var/www/ai-marketing-platform && docker compose exec -T app php artisan schedule:run >> /dev/null 2>&1") | crontab -
