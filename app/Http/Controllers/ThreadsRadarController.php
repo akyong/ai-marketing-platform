@@ -139,6 +139,13 @@ class ThreadsRadarController extends Controller
         $targetPostId = $request->input('target_post_id');
         $targetUrl = $request->input('target_url');
 
+        // Check target_post_id from log if missing in request
+        if (empty($targetPostId) && $request->log_id) {
+            $log = AiGeneration::find($request->log_id);
+            $targetPostId = $log?->metadata['target_post_id'] ?? $log?->metadata['post_id'] ?? null;
+            $targetUrl = $targetUrl ?: ($log?->metadata['target_url'] ?? null);
+        }
+
         $post = Post::create([
             'workspace_id' => $workspace->id,
             'brand_id' => $brand?->id,
@@ -154,7 +161,23 @@ class ThreadsRadarController extends Controller
             ],
         ]);
 
-        $published = $repliz->publish($post);
+        $published = false;
+
+        // 💬 Call Repliz Create Comment API (POST /public/content/{contentId}/comment) to post comment directly on target Threads post
+        if (! empty($targetPostId) && $targetPostId !== 'DbSKJzAk4ww' && $targetPostId !== 'sample1') {
+            $published = $repliz->createComment($targetPostId, $request->content);
+            if ($published) {
+                $post->update([
+                    'status' => 'published',
+                    'published_at' => now(),
+                ]);
+            }
+        }
+
+        // Fallback to schedule publish if direct comment API was not applicable or returned false
+        if (! $published) {
+            $published = $repliz->publish($post);
+        }
 
         if ($request->log_id) {
             $log = AiGeneration::find($request->log_id);
@@ -167,10 +190,10 @@ class ThreadsRadarController extends Controller
         }
 
         if ($published) {
-            return redirect()->back()->with('success', '🚀 Balasan Solutif Ollama AI Berhasil Diterbitkan ke Threads!');
+            return redirect()->back()->with('success', '🚀 Balasan Solutif Berhasil Dikomentarkan ke Threads Target!');
         }
 
-        return redirect()->back()->with('error', '⚠️ Balasan Gagal Diterbitkan: ' . ($post->error_message ?? 'Periksa akun Repliz Anda.'));
+        return redirect()->back()->with('error', '⚠️ Komentar Gagal Diterbitkan: ' . ($post->error_message ?? 'Periksa akun Repliz Anda.'));
     }
 
     public function saveFeedback(Request $request, OllamaService $ollama)
