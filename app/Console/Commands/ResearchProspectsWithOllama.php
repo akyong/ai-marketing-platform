@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
 class ResearchProspectsWithOllama extends Command
 {
     protected $signature = 'ollama:research {keyword?}';
-    protected $description = 'Riset & Social Listening 24/7 (Setiap 1 Menit) menggunakan Local Ollama AI untuk mencari calon customer Waperu.com di Threads (Dengan Anti-Repeat / Anti-Spam Deduplication)';
+    protected $description = 'Riset & Social Listening 24/7 (Setiap 1 Menit) menggunakan Local Ollama AI untuk mencari calon customer Waperu.com di Threads (Menyimpan Direct Link Post Threads)';
 
     public function handle(OllamaService $ollama, ReplizService $repliz): int
     {
@@ -46,23 +46,53 @@ class ResearchProspectsWithOllama extends Command
 
         $this->info("🤖 Memulai Riset Ollama AI (Keyword Fleksibel AI: " . implode(', ', $keywords) . ")");
 
-        // 🔍 2. Search Threads content via Repliz API using AI-determined keywords
-        $foundPosts = [];
+        // 🔍 2. Search Threads content via Repliz API & construct exact direct Threads URLs
+        $foundPostObjects = [];
         foreach ($keywords as $kw) {
             $results = $repliz->searchThreadsContent($kw);
             foreach ($results as $res) {
+                if (! is_array($res)) continue;
                 $text = $res['text'] ?? $res['description'] ?? $res['content'] ?? '';
-                if (! empty($text) && ! in_array($text, $foundPosts)) {
-                    $foundPosts[] = $text;
+                if (empty($text)) continue;
+
+                $username = $res['user']['username'] ?? $res['author']['username'] ?? $res['username'] ?? 'seller';
+                $code = $res['code'] ?? $res['shortcode'] ?? $res['id'] ?? null;
+                $permalink = $res['permalink'] ?? $res['url'] ?? $res['link'] ?? null;
+
+                if (! empty($permalink) && str_starts_with($permalink, 'http')) {
+                    $targetUrl = str_replace('threads.com', 'threads.net', $permalink);
+                } elseif (! empty($code)) {
+                    $targetUrl = "https://www.threads.net/@{$username}/post/{$code}";
+                } else {
+                    $targetUrl = "https://www.threads.net/search?q=" . urlencode($kw);
                 }
+
+                $foundPostObjects[] = [
+                    'id' => $code ?? md5($text),
+                    'text' => $text,
+                    'username' => $username,
+                    'code' => $code,
+                    'target_url' => $targetUrl,
+                ];
             }
         }
 
-        if (empty($foundPosts)) {
-            $foundPosts = [
-                "Potongan komisi marketplace sekarang makin tinggi 10-12%, seller UMKM kehabisan margin di biaya admin.",
-                "Ada rekomendasi platform toko online mandiri yang instan dan bisa QRIS / COD tanpa potong komisi admin?",
-                "Jualan di marketplace makin sepi dan biaya iklan mahal. Ingin buat toko online brand sendiri yang praktis.",
+        if (empty($foundPostObjects)) {
+            $foundPostObjects = [
+                [
+                    'id' => 'sample1',
+                    'text' => "Potongan komisi marketplace sekarang makin tinggi 10-12%, seller UMKM kehabisan margin di biaya admin.",
+                    'username' => 'seller_online',
+                    'code' => 'sample1',
+                    'target_url' => "https://www.threads.net/search?q=" . urlencode($keywords[0]),
+                ],
+                [
+                    'id' => 'sample2',
+                    'text' => "Ada rekomendasi platform toko online mandiri yang instan dan bisa QRIS / COD tanpa potong komisi admin?",
+                    'username' => 'merchant_umkm',
+                    'code' => 'sample2',
+                    'target_url' => "https://www.threads.net/search?q=" . urlencode($keywords[0]),
+                ],
             ];
         }
 
@@ -77,27 +107,30 @@ class ResearchProspectsWithOllama extends Command
                 ->toArray();
         }
 
-        $unprocessedPosts = [];
-        foreach ($foundPosts as $postText) {
-            $hash = md5(trim($postText));
+        $unprocessedObjects = [];
+        foreach ($foundPostObjects as $obj) {
+            $hash = md5(trim($obj['text']));
             if (! in_array($hash, $alreadyProcessedHashes)) {
-                $unprocessedPosts[] = $postText;
+                $unprocessedObjects[] = $obj;
             }
         }
 
-        if (empty($unprocessedPosts)) {
-            $this->info("🛡️ Seluruh postingan Threads yang ditemukan sudah pernah diproses/dibalas sebelumnya. Melewati postingan berulang (Anti-Repeat Active).");
-            $targetPost = $foundPosts[0];
+        if (empty($unprocessedObjects)) {
+            $targetObj = $foundPostObjects[0];
             $isDuplicate = true;
         } else {
-            $targetPost = $unprocessedPosts[0];
+            $targetObj = $unprocessedObjects[0];
             $isDuplicate = false;
         }
 
-        $targetHash = md5(trim($targetPost));
+        $targetText = $targetObj['text'];
+        $targetUrl = $targetObj['target_url'];
+        $targetUsername = $targetObj['username'];
+        $targetCode = $targetObj['code'];
+        $targetHash = md5(trim($targetText));
 
         // 🧠 4. Summarize seller pain points using Ollama AI
-        $postsSummary = implode("\n- ", array_map(fn($p) => mb_substr($p, 0, 150), array_slice($foundPosts, 0, 3)));
+        $postsSummary = implode("\n- ", array_map(fn($o) => mb_substr($o['text'], 0, 150), array_slice($foundPostObjects, 0, 3)));
         $researchPrompt = "Anda adalah Agen AI Riset Pasar untuk Waperu.com.\n" .
             "MEMORI BRAND & BASIS PENGETAHUAN WAPERU:\n{$brandKnowledge}\n{$brandRules}\n\n" .
             "DISKUSI THREADS SELLER ONLINE:\n- {$postsSummary}\n\n" .
@@ -110,19 +143,19 @@ class ResearchProspectsWithOllama extends Command
         // 💬 5. Draft friendly, helpful reply content using Ollama AI
         $replyPrompt = "Anda adalah tim resmi Waperu.com yang ramah dan emosional.\n" .
             "MEMORI BRAND WAPERU:\n{$brandKnowledge}\n\n" .
-            "POSTINGAN KELUHAN SELLER:\n{$targetPost}\n\n" .
+            "POSTINGAN KELUHAN SELLER (@{$targetUsername}):\n{$targetText}\n\n" .
             "TUGAS 2: Tuliskan balasan singkat (maksimal 280 karakter) untuk postingan Threads tersebut yang memberikan empati dan menawarkan solusi toko online mandiri Waperu 0% komisi.\n" .
             "Tuliskan 100% sebagai balasan manusiawi, ramah, dan solutif. Dilarang kata pengantar AI.";
 
         $draftedReply = $ollama->generate($replyPrompt);
         $draftedReply = trim(str_replace(['**', '###'], '', $draftedReply));
 
-        // 📊 6. Log 1-minute execution with Anti-Repeat Hash into AiGeneration database table
+        // 📊 6. Log 1-minute execution with Direct Threads URL into AiGeneration database table
         if ($workspace) {
             AiGeneration::create([
                 'workspace_id' => $workspace->id,
                 'type' => 'ollama_social_prospecting',
-                'prompt' => "Pencarian AI Fleksibel: " . implode(', ', $keywords) . ($isDuplicate ? " (Postingan Baru: Nil)" : " (Postingan Baru!)"),
+                'prompt' => "Target @{$targetUsername}: " . implode(', ', $keywords),
                 'response_text' => $draftedReply,
                 'status' => 'completed',
                 'metadata' => [
@@ -130,8 +163,11 @@ class ResearchProspectsWithOllama extends Command
                     'engine' => 'ollama_local_ai',
                     'keywords' => $keywords,
                     'post_hash' => $targetHash,
+                    'target_url' => $targetUrl,
+                    'username' => $targetUsername,
+                    'target_post_id' => $targetCode,
                     'is_duplicate' => $isDuplicate,
-                    'scanned_posts' => [$targetPost],
+                    'scanned_posts' => [$targetText],
                     'insight_extracted' => $insightRule,
                     'drafted_reply' => $draftedReply,
                     'executed_at' => now()->toIso8601String(),
@@ -139,8 +175,7 @@ class ResearchProspectsWithOllama extends Command
             ]);
 
             $this->info("✅ Executed Ollama AI 1-Minute Prospecting Log!");
-            $this->line("👉 Keywords: " . implode(', ', $keywords));
-            $this->line("🛡️ Post Status: " . ($isDuplicate ? "Pernah Diproses (Skipped Duplicate)" : "POSTINGAN BARU UNIK!"));
+            $this->line("👉 Direct Threads Link: {$targetUrl}");
             $this->line("💬 Draft Reply: {$draftedReply}");
         }
 
