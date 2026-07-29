@@ -58,6 +58,12 @@ const showingNavigationDropdown = ref(false);
                                     📢 Publishing
                                 </NavLink>
                                 <NavLink
+                                    :href="route('threads-radar.index')"
+                                    :active="route().current('threads-radar.*')"
+                                >
+                                    📡 Threads Radar
+                                </NavLink>
+                                <NavLink
                                     :href="route('guide.index')"
                                     :active="route().current('guide.*')"
                                 >

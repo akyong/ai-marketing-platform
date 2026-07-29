@@ -49,11 +49,16 @@ class ResearchProspectsWithOllama extends Command
 
         $this->info("💡 Menganalisis " . count($foundPosts) . " isu seller pasar dengan Ollama AI...");
 
+        // Fetch brand knowledge base & memory rules
+        $brandKnowledge = $brand?->knowledge_base ?? 'Waperu.com: Platform Toko Online Mandiri 0% Komisi, QRIS & COD langsung ke rekening.';
+        $brandRules = $brand?->custom_rules ?? '';
+
         // Summarize and research prospects using Local Ollama AI
         $postsSummary = implode("\n- ", array_map(fn($p) => mb_substr($p, 0, 150), array_slice($foundPosts, 0, 5)));
         $researchPrompt = "Anda adalah Agen AI Riset Pasar untuk Waperu.com.\n" .
+            "MEMORI BRAND & BASIS PENGETAHUAN WAPERU:\n{$brandKnowledge}\n{$brandRules}\n\n" .
             "Berikut adalah beberapa postingan real-time dari Threads tentang seller online:\n- {$postsSummary}\n\n" .
-            "TUGAS: Analisis dan ekstrak 1 keluhan utama seller yang paling berpotensi untuk ditawarkan solusi toko online mandiri Waperu 0% komisi.\n" .
+            "TUGAS: Berdasarkan Memori Brand Waperu di atas, analisis dan ekstrak 1 keluhan utama seller yang paling berpotensi untuk ditawarkan solusi toko online mandiri Waperu 0% komisi.\n" .
             "Format Output Ringkas: 'Ollama Lead Insight: [keluhan utama seller]'";
 
         $insightRule = $ollama->generate($researchPrompt);
