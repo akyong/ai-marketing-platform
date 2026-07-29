@@ -44,7 +44,30 @@ class ReplizService
         }
 
         try {
-            // Repliz API uses HTTP Basic Authentication (Access Key : Secret Key)
+            // Check if this post is a comment reply to a specific social media post/thread
+            $targetPostId = $post->metadata['target_post_id'] ?? $post->metadata['content_id'] ?? null;
+            if (! empty($targetPostId)) {
+                $cleanComment = $this->sanitizeForSocialMedia($post->content, 'threads');
+                $commentSuccess = $this->createComment((string) $targetPostId, $cleanComment);
+
+                if ($commentSuccess) {
+                    $post->update([
+                        'status' => 'published',
+                        'published_at' => now(),
+                        'repliz_post_id' => 'comment_' . uniqid(),
+                        'error_message' => null,
+                    ]);
+                    return true;
+                }
+
+                $post->update([
+                    'status' => 'failed',
+                    'error_message' => 'Gagal mengirim komentar ke Threads via Repliz API.',
+                ]);
+                return false;
+            }
+
+            // Otherwise, publish schedule post as usual
             if (str_contains($this->apiKey, ':')) {
                 [$accessKey, $secretKey] = explode(':', $this->apiKey, 2);
                 $httpClient = Http::withBasicAuth(trim($accessKey), trim($secretKey));
@@ -415,5 +438,43 @@ class ReplizService
         }
 
         return "https://www.threads.net";
+    }
+
+    /**
+     * Post a comment directly on a specific social media post/thread content
+     * POST /public/content/{contentId}/comment
+     * Docs: https://docs.repliz.com/api/content/create-comment.html
+     */
+    public function createComment(string $contentId, string $text, ?string $accountId = null): bool
+    {
+        if (empty($this->apiKey)) {
+            Log::info("REPLIZ_API_KEY empty. Simulating comment creation on content {$contentId}");
+            return true;
+        }
+
+        $accId = $accountId ?: $this->getThreadsAccountId();
+        if (empty($accId)) {
+            Log::warning("Repliz createComment: accountId Threads tidak ditemukan.");
+            return false;
+        }
+
+        try {
+            $httpClient = $this->buildHttpClient();
+            $response = $httpClient->post("https://api.repliz.com/public/content/{$contentId}/comment", [
+                'accountId' => $accId,
+                'text' => $text,
+            ]);
+
+            if ($response->successful()) {
+                Log::info("Repliz Create Comment Success for contentId {$contentId}", ['res' => $response->json()]);
+                return true;
+            }
+
+            Log::error("Repliz Create Comment Failed HTTP {$response->status()}", ['body' => $response->body()]);
+        } catch (\Exception $e) {
+            Log::error("Repliz Create Comment Exception: " . $e->getMessage());
+        }
+
+        return false;
     }
 }
