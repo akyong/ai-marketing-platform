@@ -289,21 +289,27 @@ class ReplizService
                 $httpClient = Http::withHeaders(['x-api-key' => $key])->withToken($key);
             }
 
-            $response = $httpClient->get('https://api.repliz.com/public/account', ['limit' => 20]);
+            $response = $httpClient->get('https://api.repliz.com/public/account', ['limit' => 50]);
             if ($response->successful()) {
                 $json = $response->json();
                 $accounts = $json['docs'] ?? $json['data'] ?? $json['accounts'] ?? $json['items'] ?? (is_array($json) ? $json : []);
+
+                // 1. Priority: Find account with type/platform 'threads'
                 foreach ($accounts as $acc) {
+                    if (! is_array($acc)) continue;
                     $platform = strtolower($acc['type'] ?? $acc['platform'] ?? '');
-                    $id = $acc['_id'] ?? $acc['id'] ?? $acc['generatedId'] ?? null;
-                    if ($platform === 'threads' && ! empty($id) && strlen($id) === 24) {
-                        return $id;
+                    $id = (string) ($acc['_id'] ?? $acc['id'] ?? $acc['accountId'] ?? $acc['generatedId'] ?? '');
+                    if (($platform === 'threads' || str_contains($platform, 'thread')) && strlen(trim($id)) === 24) {
+                        return trim($id);
                     }
                 }
+
+                // 2. Fallback: Find any connected account with valid 24-character Mongoose ID
                 foreach ($accounts as $acc) {
-                    $id = $acc['_id'] ?? $acc['id'] ?? $acc['generatedId'] ?? null;
-                    if (! empty($id) && strlen($id) === 24) {
-                        return $id;
+                    if (! is_array($acc)) continue;
+                    $id = (string) ($acc['_id'] ?? $acc['id'] ?? $acc['accountId'] ?? $acc['generatedId'] ?? '');
+                    if (strlen(trim($id)) === 24) {
+                        return trim($id);
                     }
                 }
             }
@@ -324,6 +330,12 @@ class ReplizService
             return [];
         }
 
+        $accountId = $this->getThreadsAccountId($apiKey);
+        if (empty($accountId)) {
+            Log::info("Repliz searchThreadsContent: accountId 24-char belum ditemukan di akun Repliz.");
+            return [];
+        }
+
         try {
             if (str_contains($apiKey, ':')) {
                 [$accessKey, $secretKey] = explode(':', $apiKey, 2);
@@ -332,15 +344,10 @@ class ReplizService
                 $httpClient = Http::withHeaders(['x-api-key' => $apiKey])->withToken($apiKey);
             }
 
-            $accountId = $this->getThreadsAccountId($apiKey);
-            $queryParams = [
+            $response = $httpClient->get('https://api.repliz.com/public/research/threads/content/search', [
                 'search' => $query,
-            ];
-            if (! empty($accountId)) {
-                $queryParams['accountId'] = $accountId;
-            }
-
-            $response = $httpClient->get('https://api.repliz.com/public/research/threads/content/search', $queryParams);
+                'accountId' => $accountId,
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
