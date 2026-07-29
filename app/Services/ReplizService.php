@@ -276,22 +276,25 @@ class ReplizService
             return [];
         }
 
-        try {
+            $headers = ['x-api-key' => $this->apiKey];
             if (str_contains($this->apiKey, ':')) {
                 [$accessKey, $secretKey] = explode(':', $this->apiKey, 2);
-                $httpClient = Http::withBasicAuth(trim($accessKey), trim($secretKey));
+                $httpClient = Http::withHeaders($headers)->withBasicAuth(trim($accessKey), trim($secretKey));
             } else {
-                $httpClient = Http::withToken($this->apiKey);
+                $httpClient = Http::withHeaders($headers)->withToken($this->apiKey);
             }
 
             $response = $httpClient->get('https://api.repliz.com/public/research/threads/content/search', [
                 'query' => $query,
-                'limit' => 5,
+                'q' => $query,
+                'limit' => 10,
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                return $data['docs'] ?? $data['data'] ?? $data['items'] ?? [];
+                return $data['docs'] ?? $data['data'] ?? $data['items'] ?? $data['results'] ?? $data['result'] ?? [];
+            } else {
+                Log::warning("Repliz Threads Research API HTTP {$response->status()}", ['body' => $response->body()]);
             }
         } catch (\Exception $e) {
             Log::warning("Repliz Threads Research Error: " . $e->getMessage());
