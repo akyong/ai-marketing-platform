@@ -303,7 +303,7 @@ class ReplizService
 
         try {
             $httpClient = $this->buildHttpClient($key);
-            $response = $httpClient->get('https://api.repliz.com/public/account', ['limit' => 50]);
+            $response = $httpClient->get('https://api.repliz.com/public/account', ['page' => 1, 'limit' => 50]);
 
             if ($response->successful()) {
                 $json = $response->json();
