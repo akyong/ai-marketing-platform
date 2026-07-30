@@ -59,14 +59,31 @@ class WidgetChatController extends Controller
                 ]);
             }
 
+            $brandWebsiteUrl = ! empty($brand?->website_url) ? rtrim($brand->website_url, '/') : 'https://waperu.com';
+
+            // Load Self-Learning Memory Rules & Custom Brand Rules from Database
+            $ownerLearnedRules = $workspace ? AiGeneration::where('workspace_id', $workspace->id)
+                ->where('type', 'user_memory_rule')
+                ->latest()
+                ->take(10)
+                ->pluck('response_text')
+                ->toArray() : [];
+
+            $memoryRulesText = ! empty($ownerLearnedRules)
+                ? implode("\n- ", $ownerLearnedRules)
+                : 'Gunakan nada ramah, berikan solusi 0% komisi & pendaftaran toko online mandiri.';
+
+            $customRulesText = ! empty($brand?->custom_rules) ? $brand->custom_rules : '-';
+
             // Construct Customer Support Persona Prompt with Mandatory Bold & Link instructions
-            $websiteUrl = config('app.url', 'https://waperu.com');
-            $csPrompt = "PERAN: Anda adalah Asisten Customer Support AI Resmi untuk {$brandName} ({$websiteUrl}).\n" .
-                "MEMORI BRAND WAPERU:\n" . ($brand?->knowledge_base ?: 'Waperu.com adalah platform toko online mandiri 0% komisi & QRIS COD langsung ke rekening seller.') . "\n\n" .
-                "ATURAN FORMAT BALASAN (WAJIB DITURUTI SERIUS):\n" .
-                "1. WAJIB sertakan setidaknya satu link website lengkap seperti `{$websiteUrl}` atau `{$websiteUrl}/register` di dalam kalimat balasan agar pengunjung dapat mengeklik link tersebut!\n" .
+            $csPrompt = "PERAN: Anda adalah Asisten Customer Support AI Resmi untuk {$brandName} ({$brandWebsiteUrl}).\n" .
+                "BASIS PENGETAHUAN & MEMORI BRAND:\n" . ($brand?->knowledge_base ?: 'Waperu.com adalah platform toko online mandiri 0% komisi & QRIS COD langsung ke rekening seller.') . "\n\n" .
+                "🧠 ATURAN MEMORI HASIL PEMBELAJARAN DARI PEMILIK BRAND:\n- {$memoryRulesText}\n\n" .
+                "📌 ATURAN KHUSUS BRAND:\n{$customRulesText}\n\n" .
+                "ATURAN FORMAT BALASAN (WAJIB DITURUTI):\n" .
+                "1. SELALU sertakan link resmi brand `{$brandWebsiteUrl}` atau `{$brandWebsiteUrl}/register` di dalam kalimat balasan (JANGAN PERNAH gunakan gotiau.com!).\n" .
                 "2. WAJIB gunakan format Markdown bold (`**teks tebal**`) untuk menyorot kata/fitur/nama brand penting (contoh: **0% Komisi**, **Fitur QRIS & COD**, **Waperu.com**).\n" .
-                "3. Jawab pertanyaan pengunjung berikut dengan ramah, solutif, dan jelas.\n\n" .
+                "3. Jawab pertanyaan pengunjung berikut secara ramah, komunikatif, solutif, dan jelas.\n\n" .
                 "Pertanyaan Pengunjung: \"{$messageText}\"";
 
             $aiReply = '';
@@ -89,7 +106,7 @@ class WidgetChatController extends Controller
             // Fallback default message if both AI engines fail
             if (empty($aiReply) || str_starts_with($aiReply, '⚠️') || str_starts_with($aiReply, '🔑')) {
                 $aiReply = "Halo! 👋 Terima kasih telah menghubungi Customer Support **{$brandName}**.\n\n" .
-                    "Ada yang bisa saya bantu terkait **toko online mandiri**, **fitur QRIS & COD 0% komisi**, atau solusi jualan tanpa potongan admin di {$websiteUrl}? Silakan tanyakan di sini! 😊";
+                    "Ada yang bisa saya bantu terkait **toko online mandiri**, **fitur QRIS & COD 0% komisi**, atau solusi jualan tanpa potongan admin di {$brandWebsiteUrl}? Silakan tanyakan di sini! 😊";
             }
 
             // Record AI Reply Message
