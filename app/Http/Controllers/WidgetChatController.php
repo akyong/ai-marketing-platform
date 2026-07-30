@@ -57,16 +57,22 @@ class WidgetChatController extends Controller
             'message' => $validated['message'],
         ]);
 
-        // Construct Customer Support Persona Prompt for Gemini
-        $csPrompt = "PERAN: Anda adalah Customer Support AI Resmi untuk {$brandName}.\n" .
-            "TUGAS: Jawablah pertanyaan calon pembeli/pengunjung website berikut secara ramah, profesional, dan langsung memberikan solusi berdasarkan profil brand Anda.\n\n" .
+        // Construct Customer Support Persona Prompt with Bold & Link instructions
+        $websiteUrl = config('app.url', 'https://waperu.com');
+        $csPrompt = "PERAN: Anda adalah Customer Support AI Resmi untuk {$brandName} ({$websiteUrl}).\n" .
+            "MEMORI BRAND:\n" . ($brand?->knowledge_base ?: 'Waperu.com adalah platform buat toko online mandiri 0% komisi & QRIS COD langsung ke rekening seller.') . "\n\n" .
+            "PETUNJUK FORMAT BALASAN:\n" .
+            "- Gunakan teks **bold** (`**kata penting**`) untuk menekankan nama fitur, penawaran, atau poin penting.\n" .
+            "- Sertakan link lengkap website `{$websiteUrl}` atau link pendaftaran `{$websiteUrl}/register` secara aktif di dalam balasan bila relevan agar pengunjung dapat langsung mengklik.\n" .
+            "- Jawab dengan ramah, komunikatif, solutif, dan jelas.\n\n" .
             "Pertanyaan Pengunjung: \"{$validated['message']}\"";
 
         $aiReply = $gemini->generate($csPrompt, $brand);
 
         // Sanitize AI Reply if error prefix returned
         if (empty($aiReply) || str_starts_with($aiReply, '⚠️') || str_starts_with($aiReply, '🔑')) {
-            $aiReply = "Halo! 👋 Terima kasih telah menghubungi Customer Support {$brandName}. Ada yang bisa saya bantu terkait layanan toko online, landing page, atau solusi jualan tanpa komisi di {$brandName}? Silakan tanyakan di sini! 😊";
+            $aiReply = "Halo! 👋 Terima kasih telah menghubungi Customer Support **{$brandName}**.\n\n" .
+                "Ada yang bisa saya bantu terkait **toko online mandiri**, **fitur QRIS & COD 0% komisi**, atau solusi jualan tanpa potongan admin di [{$websiteUrl}]({$websiteUrl})? Silakan tanyakan di sini! 😊";
         }
 
         // Record AI Reply Message

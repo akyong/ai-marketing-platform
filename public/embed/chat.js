@@ -185,7 +185,7 @@
             <button class="aics-close" id="aics-close">✕</button>
         </div>
         <div class="aics-body" id="aics-body">
-            <div class="aics-msg aics-msg-ai">Halo! 👋 Ada yang bisa saya bantu terkait produk & layanan kami hari ini?</div>
+            <div class="aics-msg aics-msg-ai">Halo! 👋 Ada yang bisa saya bantu terkait **toko online mandiri**, **fitur QRIS & COD 0% komisi**, atau solusi jualan tanpa potongan admin? Silakan tanyakan di sini! 😊</div>
         </div>
         <div class="aics-footer">
             <input type="text" class="aics-input" id="aics-input" placeholder="Tulis pertanyaan Anda..." />
