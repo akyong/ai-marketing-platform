@@ -106,6 +106,19 @@
             line-height: 1.5;
             word-wrap: break-word;
         }
+        .aics-msg a {
+            color: #2563EB;
+            font-weight: 700;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+        .aics-msg a:hover {
+            color: #1D4ED8;
+        }
+        .aics-msg strong {
+            font-weight: 700;
+            color: #111827;
+        }
         .aics-msg-ai {
             align-self: flex-start;
             background: #ffffff;
@@ -197,6 +210,35 @@
         windowBox.style.display = 'none';
     };
 
+    // Format Markdown links, raw URLs, bold text, and linebreaks for AI responses
+    function formatChatMessage(text) {
+        if (!text) return '';
+
+        // 1. Escape HTML special characters to prevent XSS
+        var div = document.createElement('div');
+        div.innerText = text;
+        var escaped = div.innerHTML;
+
+        // 2. Format Markdown links: [text](url) -> <a href="url" target="_blank" rel="noopener noreferrer">text ↗</a>
+        escaped = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, function(match, label, url) {
+            return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + label + ' ↗</a>';
+        });
+
+        // 3. Format Raw URLs: https://... or http://... -> <a href="url" target="_blank" rel="noopener noreferrer">url ↗</a>
+        escaped = escaped.replace(/(^|[^"'>])(https?:\/\/[^\s<]+)/g, function(match, prefix, url) {
+            return prefix + '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + url + ' ↗</a>';
+        });
+
+        // 4. Format Markdown bold: **text** or __text__ -> <strong>text</strong>
+        escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        escaped = escaped.replace(/__(.*?)__/g, '<strong>$1</strong>');
+
+        // 5. Format Newlines -> <br>
+        escaped = escaped.replace(/\n/g, '<br>');
+
+        return escaped;
+    }
+
     // Send Message Logic
     function sendMessage() {
         var text = inputField.value.trim();
@@ -243,7 +285,7 @@
 
             var aiMsg = document.createElement('div');
             aiMsg.className = 'aics-msg aics-msg-ai';
-            aiMsg.innerText = data.reply || data.error || 'Mohon maaf, terjadi kendala saat merespon.';
+            aiMsg.innerHTML = formatChatMessage(data.reply || data.error || 'Mohon maaf, terjadi kendala saat merespon.');
             bodyBox.appendChild(aiMsg);
             bodyBox.scrollTop = bodyBox.scrollHeight;
         })
@@ -251,7 +293,7 @@
             bodyBox.removeChild(typing);
             var errMsg = document.createElement('div');
             errMsg.className = 'aics-msg aics-msg-ai';
-            errMsg.innerText = 'Gagal terhubung ke server CS AI.';
+            errMsg.innerHTML = formatChatMessage('Gagal terhubung ke server CS AI.');
             bodyBox.appendChild(errMsg);
             bodyBox.scrollTop = bodyBox.scrollHeight;
         });
