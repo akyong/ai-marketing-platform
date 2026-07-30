@@ -71,7 +71,8 @@ class WidgetChatController extends Controller
 
             $aiReply = '';
             try {
-                $aiReply = $ollama->generate($csPrompt);
+                // Use fast 4s timeout for live chat widget to prevent browser / Nginx 504 timeouts
+                $aiReply = $ollama->generate($csPrompt, null, 4);
             } catch (\Throwable $e) {
                 $aiReply = '';
             }

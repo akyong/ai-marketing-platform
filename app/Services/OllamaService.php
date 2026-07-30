@@ -19,15 +19,15 @@ class OllamaService
     /**
      * Generate content using local Ollama model
      */
-    public function generate(string $prompt, ?string $model = null): string
+    public function generate(string $prompt, ?string $model = null, int $timeout = 60): string
     {
         $selectedModel = $model ?: $this->defaultModel;
         $endpoint = rtrim($this->baseUrl, '/') . '/api/generate';
 
         try {
-            Log::debug("Menggunakan Local Ollama Model: {$selectedModel}");
+            Log::debug("Menggunakan Local Ollama Model: {$selectedModel} (timeout={$timeout}s)");
 
-            $response = Http::timeout(60)->post($endpoint, [
+            $response = Http::timeout($timeout)->post($endpoint, [
                 'model' => $selectedModel,
                 'prompt' => $prompt,
                 'stream' => false,

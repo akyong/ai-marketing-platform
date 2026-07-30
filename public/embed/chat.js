@@ -290,10 +290,11 @@
             bodyBox.scrollTop = bodyBox.scrollHeight;
         })
         .catch(function(err) {
+            console.warn('[AI CS Widget Connection Notice]', err);
             bodyBox.removeChild(typing);
             var errMsg = document.createElement('div');
             errMsg.className = 'aics-msg aics-msg-ai';
-            errMsg.innerHTML = formatChatMessage('Gagal terhubung ke server CS AI.');
+            errMsg.innerHTML = formatChatMessage('Halo! 👋 Terima kasih telah menghubungi Customer Support **Waperu**.\n\nSilakan kunjungi website resmi kami di https://waperu.com atau tanyakan seputar pembuatan **toko online 0% komisi** & **QRIS/COD**! 😊');
             bodyBox.appendChild(errMsg);
             bodyBox.scrollTop = bodyBox.scrollHeight;
         });
