@@ -219,21 +219,36 @@
         div.innerText = text;
         var escaped = div.innerHTML;
 
-        // 2. Format Markdown links: [text](url) -> <a href="url" target="_blank" rel="noopener noreferrer">text ↗</a>
+        var links = [];
+
+        // 2. Extract & Tokenize Markdown links: [label](url)
         escaped = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, function(match, label, url) {
-            return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + label + ' ↗</a>';
+            var index = links.length;
+            var cleanLabel = label.replace(/^https?:\/\//, '');
+            links.push('<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + cleanLabel + ' ↗</a>');
+            return '___AICS_LINK_' + index + '___';
         });
 
-        // 3. Format Raw URLs: https://... or http://... -> <a href="url" target="_blank" rel="noopener noreferrer">url ↗</a>
-        escaped = escaped.replace(/(^|[^"'>])(https?:\/\/[^\s<]+)/g, function(match, prefix, url) {
-            return prefix + '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + url + ' ↗</a>';
+        // 3. Extract & Tokenize Raw URLs: https://... or http://...
+        escaped = escaped.replace(/(https?:\/\/[^\s<>"]+)/g, function(match, url) {
+            var cleanUrl = url.replace(/[.,!?:;)]+$/, '');
+            var trailingPunct = url.substring(cleanUrl.length);
+            var index = links.length;
+            var displayUrl = cleanUrl.replace(/^https?:\/\//, '');
+            links.push('<a href="' + cleanUrl + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + displayUrl + ' ↗</a>');
+            return '___AICS_LINK_' + index + '___' + trailingPunct;
         });
 
-        // 4. Format Markdown bold: **text** or __text__ -> <strong>text</strong>
+        // 4. Format Markdown bold: **text** or __text__
         escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         escaped = escaped.replace(/__(.*?)__/g, '<strong>$1</strong>');
 
-        // 5. Format Newlines -> <br>
+        // 5. Restore Tokenized Links
+        escaped = escaped.replace(/___AICS_LINK_(\d+)___/g, function(match, id) {
+            return links[parseInt(id, 10)] || '';
+        });
+
+        // 6. Format Newlines -> <br>
         escaped = escaped.replace(/\n/g, '<br>');
 
         return escaped;
