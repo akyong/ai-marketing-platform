@@ -15,7 +15,7 @@ class WidgetChatController extends Controller
     /**
      * Handle incoming Customer Support Live Chat message from external websites (e.g. waperu.com)
      */
-    public function handleChat(Request $request, GeminiService $gemini): JsonResponse
+    public function handleChat(Request $request, GeminiService $gemini, \App\Services\OllamaService $ollama): JsonResponse
     {
         $validated = $request->validate([
             'widget_key' => 'required|string',
@@ -57,22 +57,32 @@ class WidgetChatController extends Controller
             'message' => $validated['message'],
         ]);
 
-        // Construct Customer Support Persona Prompt with Bold & Link instructions
+        // Construct Customer Support Persona Prompt with Mandatory Bold & Link instructions
         $websiteUrl = config('app.url', 'https://waperu.com');
-        $csPrompt = "PERAN: Anda adalah Customer Support AI Resmi untuk {$brandName} ({$websiteUrl}).\n" .
-            "MEMORI BRAND:\n" . ($brand?->knowledge_base ?: 'Waperu.com adalah platform buat toko online mandiri 0% komisi & QRIS COD langsung ke rekening seller.') . "\n\n" .
-            "PETUNJUK FORMAT BALASAN:\n" .
-            "- Gunakan teks **bold** (`**kata penting**`) untuk menekankan nama fitur, penawaran, atau poin penting.\n" .
-            "- Sertakan link lengkap website `{$websiteUrl}` atau link pendaftaran `{$websiteUrl}/register` secara aktif di dalam balasan bila relevan agar pengunjung dapat langsung mengklik.\n" .
-            "- Jawab dengan ramah, komunikatif, solutif, dan jelas.\n\n" .
+        $csPrompt = "PERAN: Anda adalah Asisten Customer Support AI Resmi untuk {$brandName} ({$websiteUrl}).\n" .
+            "MEMORI BRAND WAPERU:\n" . ($brand?->knowledge_base ?: 'Waperu.com adalah platform toko online mandiri 0% komisi & QRIS COD langsung ke rekening seller.') . "\n\n" .
+            "ATURAN FORMAT BALASAN (WAJIB DITURUTI SERIUS):\n" .
+            "1. WAJIB sertakan setidaknya satu link website lengkap seperti `{$websiteUrl}` atau `{$websiteUrl}/register` di dalam kalimat balasan agar pengunjung dapat mengeklik link tersebut!\n" .
+            "2. WAJIB gunakan format Markdown bold (`**teks tebal**`) untuk menyorot kata/fitur/nama brand penting (contoh: **0% Komisi**, **Fitur QRIS & COD**, **Waperu.com**).\n" .
+            "3. Jawab pertanyaan pengunjung berikut dengan ramah, solutif, dan jelas.\n\n" .
             "Pertanyaan Pengunjung: \"{$validated['message']}\"";
 
-        $aiReply = $gemini->generate($csPrompt, $brand);
+        $aiReply = '';
+        try {
+            $aiReply = $ollama->generate($csPrompt);
+        } catch (\Exception $e) {
+            $aiReply = '';
+        }
+
+        // Fallback to Gemini if Ollama returns empty or error
+        if (empty($aiReply) || str_starts_with($aiReply, '⚠️') || str_starts_with($aiReply, '🔑')) {
+            $aiReply = $gemini->generate($csPrompt, $brand);
+        }
 
         // Sanitize AI Reply if error prefix returned
         if (empty($aiReply) || str_starts_with($aiReply, '⚠️') || str_starts_with($aiReply, '🔑')) {
             $aiReply = "Halo! 👋 Terima kasih telah menghubungi Customer Support **{$brandName}**.\n\n" .
-                "Ada yang bisa saya bantu terkait **toko online mandiri**, **fitur QRIS & COD 0% komisi**, atau solusi jualan tanpa potongan admin di [{$websiteUrl}]({$websiteUrl})? Silakan tanyakan di sini! 😊";
+                "Ada yang bisa saya bantu terkait **toko online mandiri**, **fitur QRIS & COD 0% komisi**, atau solusi jualan tanpa potongan admin di {$websiteUrl}? Silakan tanyakan di sini! 😊";
         }
 
         // Record AI Reply Message
