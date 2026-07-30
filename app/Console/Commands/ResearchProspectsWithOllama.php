@@ -119,10 +119,24 @@ class ResearchProspectsWithOllama extends Command
                 "Output HANYA kata kunci dipisah koma, TANPA kata pengantar.";
 
             $rawKeywords = $ollama->generate($keywordPrompt);
-            $parsed = array_filter(array_map('trim', explode(',', str_replace(['**', '###', '"', "'"], '', $rawKeywords))));
+            // Clean conversational preambles from keywords output (e.g. "kamu dapat mencari kata kunci...")
+            $cleanRaw = preg_replace('/^(kamu|anda|berikut|berikut adalah|tentu|ini).*:\s*/iu', '', trim($rawKeywords));
+            $parsedItems = explode(',', $cleanRaw);
+            $parsed = [];
+
+            foreach ($parsedItems as $item) {
+                $trimmed = trim(preg_replace('/^[-*\d.]+\s*/', '', $item));
+                $lines = explode("\n", $trimmed);
+                $lastLine = trim(end($lines));
+                $cleaned = str_replace(['**', '###', '"', "'", '`'], '', $lastLine);
+                // Filter out lines containing preamble phrases
+                if (! empty($cleaned) && mb_strlen($cleaned) <= 40 && ! preg_match('/(?:kata kunci|dapat mencari|sebagai berikut)/i', $cleaned)) {
+                    $parsed[] = $cleaned;
+                }
+            }
 
             if (! empty($parsed)) {
-                $keywords = array_slice($parsed, 0, 3);
+                $keywords = array_slice(array_values(array_unique($parsed)), 0, 3);
             } else {
                 $keywords = ['komisi marketplace', 'potongan admin', 'toko online mandiri'];
             }

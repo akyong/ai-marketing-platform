@@ -44,7 +44,7 @@ class GeminiService
 
         // Rotate & Failover through keys in the pool
         foreach ($keys as $keyRecord) {
-            Log::info("Menggunakan Gemini API Key: {$keyRecord->key_name} (Usage: {$keyRecord->usage_count})");
+            Log::debug("Menggunakan Gemini API Key: {$keyRecord->key_name} (Usage: {$keyRecord->usage_count})");
 
             $result = $this->executeApiCallWithDetails($keyRecord->api_key, $prompt, $brand, $keyRecord);
 

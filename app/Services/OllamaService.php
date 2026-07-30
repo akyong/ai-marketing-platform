@@ -25,7 +25,7 @@ class OllamaService
         $endpoint = rtrim($this->baseUrl, '/') . '/api/generate';
 
         try {
-            Log::info("Menggunakan Local Ollama Model: {$selectedModel}");
+            Log::debug("Menggunakan Local Ollama Model: {$selectedModel}");
 
             $response = Http::timeout(60)->post($endpoint, [
                 'model' => $selectedModel,

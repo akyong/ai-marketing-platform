@@ -98,7 +98,7 @@ class ReplizService
             }
 
             $rawJson = $accountResponse->json();
-            Log::info('Repliz GET /public/account Raw Response', ['raw' => $rawJson]);
+            Log::debug('Repliz GET /public/account Raw Response', ['raw' => $rawJson]);
 
             // Parse accounts array flexibly (Repliz uses Mongoose 'docs' pagination array)
             if (isset($rawJson['docs']) && is_array($rawJson['docs'])) {
@@ -356,7 +356,7 @@ class ReplizService
                     $platform = strtolower($acc['type'] ?? $acc['platform'] ?? $acc['provider'] ?? '');
                     $id = (string) ($acc['_id'] ?? $acc['id'] ?? $acc['accountId'] ?? $acc['account_id'] ?? $acc['generatedId'] ?? '');
                     if (($platform === 'threads' || str_contains($platform, 'thread')) && ! empty(trim($id))) {
-                        Log::info("Repliz getThreadsAccountId: Found Threads account", ['id' => trim($id), 'platform' => $platform]);
+                        Log::debug("Repliz getThreadsAccountId: Found Threads account", ['id' => trim($id), 'platform' => $platform]);
                         return trim($id);
                     }
                 }
@@ -370,7 +370,7 @@ class ReplizService
                     }
                 }
 
-                Log::info("Repliz getThreadsAccountId: No account ID found", ['accounts' => $accounts]);
+                Log::debug("Repliz getThreadsAccountId: No account ID found", ['accounts' => $accounts]);
             } else {
                 Log::warning("Repliz getThreadsAccountId HTTP {$response->status()}", ['body' => $response->body()]);
             }
@@ -392,7 +392,7 @@ class ReplizService
 
         $accountId = $this->getThreadsAccountId();
         if (empty($accountId)) {
-            Log::info("Repliz searchThreadsContent: accountId belum ditemukan. Pastikan akun Threads sudah terhubung di Repliz.");
+            Log::debug("Repliz searchThreadsContent: accountId belum ditemukan. Pastikan akun Threads sudah terhubung di Repliz.");
             return [];
         }
 
@@ -405,7 +405,7 @@ class ReplizService
 
             if ($response->successful()) {
                 $data = $response->json();
-                Log::info("Repliz Threads Search OK for '{$query}'", ['count' => count($data['docs'] ?? $data['data'] ?? [])]);
+                Log::debug("Repliz Threads Search OK for '{$query}'", ['count' => count($data['docs'] ?? $data['data'] ?? [])]);
                 return $data['docs'] ?? $data['data'] ?? $data['items'] ?? $data['results'] ?? $data['result'] ?? [];
             }
 
