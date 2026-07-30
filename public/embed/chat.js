@@ -229,10 +229,11 @@
             return '___AICS_LINK_' + index + '___';
         });
 
-        // 3. Extract & Tokenize Raw URLs: https://... or http://...
-        escaped = escaped.replace(/(https?:\/\/[^\s<>"]+)/g, function(match, url) {
-            var cleanUrl = url.replace(/[.,!?:;)]+$/, '');
+        // 3. Extract & Tokenize Raw URLs: https://... or http://... (exclude markdown formatting symbols like *, _, ~)
+        escaped = escaped.replace(/(https?:\/\/[^\s<>"*\_]+)/g, function(match, url) {
+            var cleanUrl = url.replace(/[*_.,!?:;)\-]+$/, '');
             var trailingPunct = url.substring(cleanUrl.length);
+            if (!cleanUrl) return match;
             var index = links.length;
             var displayUrl = cleanUrl.replace(/^https?:\/\//, '');
             links.push('<a href="' + cleanUrl + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + displayUrl + ' ↗</a>');
