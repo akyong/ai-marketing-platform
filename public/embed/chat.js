@@ -210,7 +210,7 @@
         windowBox.style.display = 'none';
     };
 
-    // Format Markdown links, raw URLs, bold text, and linebreaks for AI responses
+    // Format Markdown links, raw URLs, bold text, HTML tags, and linebreaks for AI responses
     function formatChatMessage(text) {
         if (!text) return '';
 
@@ -219,37 +219,42 @@
         div.innerText = text;
         var escaped = div.innerHTML;
 
+        // 2. Unescape safe formatting HTML tags if AI generated raw <b> or <strong> or <a>
+        escaped = escaped.replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/gi, '<strong>$1</strong>');
+        escaped = escaped.replace(/&lt;strong&gt;(.*?)&lt;\/strong&gt;/gi, '<strong>$1</strong>');
+        escaped = escaped.replace(/&lt;a\s+href=["'](https?:\/\/[^"']+)["']\s*&gt;(.*?)&lt;\/a&gt;/gi, function(match, url, label) {
+            return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + label + ' ↗</a>';
+        });
+
         var links = [];
 
-        // 2. Extract & Tokenize Markdown links: [label](url)
+        // 3. Extract & Tokenize Markdown links: [label](url)
         escaped = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, function(match, label, url) {
             var index = links.length;
-            var cleanLabel = label.replace(/^https?:\/\//, '');
-            links.push('<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + cleanLabel + ' ↗</a>');
+            links.push('<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + label + ' ↗</a>');
             return '___AICS_LINK_' + index + '___';
         });
 
-        // 3. Extract & Tokenize Raw URLs: https://... or http://... (exclude markdown formatting symbols like *, _, ~)
+        // 4. Extract & Tokenize Raw URLs: https://... or http://... (exclude markdown formatting symbols like *, _, ~)
         escaped = escaped.replace(/(https?:\/\/[^\s<>"*\_]+)/g, function(match, url) {
             var cleanUrl = url.replace(/[*_.,!?:;)\-]+$/, '');
             var trailingPunct = url.substring(cleanUrl.length);
             if (!cleanUrl) return match;
             var index = links.length;
-            var displayUrl = cleanUrl.replace(/^https?:\/\//, '');
-            links.push('<a href="' + cleanUrl + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + displayUrl + ' ↗</a>');
+            links.push('<a href="' + cleanUrl + '" target="_blank" rel="noopener noreferrer" class="aics-link">' + cleanUrl + ' ↗</a>');
             return '___AICS_LINK_' + index + '___' + trailingPunct;
         });
 
-        // 4. Format Markdown bold: **text** or __text__
+        // 5. Format Markdown bold: **text** or __text__
         escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         escaped = escaped.replace(/__(.*?)__/g, '<strong>$1</strong>');
 
-        // 5. Restore Tokenized Links
+        // 6. Restore Tokenized Links
         escaped = escaped.replace(/___AICS_LINK_(\d+)___/g, function(match, id) {
             return links[parseInt(id, 10)] || '';
         });
 
-        // 6. Format Newlines -> <br>
+        // 7. Format Newlines -> <br>
         escaped = escaped.replace(/\n/g, '<br>');
 
         return escaped;
