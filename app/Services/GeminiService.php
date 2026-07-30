@@ -54,7 +54,7 @@ class GeminiService
             }
 
             $lastErrorMessage = $result['error'];
-            Log::warning("Gemini Key '{$keyRecord->key_name}' bermasalah: {$lastErrorMessage}");
+            Log::debug("Gemini Key '{$keyRecord->key_name}' bermasalah: {$lastErrorMessage}");
         }
 
         // Ultimate Fallback: Try .env GEMINI_API_KEY if available

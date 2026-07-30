@@ -45,11 +45,11 @@ class OllamaService
                 }
             }
 
-            Log::warning("Ollama API call status: {$response->status()}", ['body' => $response->body()]);
+            Log::debug("Ollama API call status: {$response->status()}", ['body' => $response->body()]);
             return $this->fallbackPrompt($prompt);
 
         } catch (\Exception $e) {
-            Log::warning("Ollama Exception (falling back): {$e->getMessage()}");
+            Log::debug("Ollama Exception (falling back to Gemini): {$e->getMessage()}");
             return $this->fallbackPrompt($prompt);
         }
     }
