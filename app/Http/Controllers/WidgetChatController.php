@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AiGeneration;
 use App\Models\CustomerChatMessage;
 use App\Models\CustomerChatSession;
 use App\Models\Workspace;
